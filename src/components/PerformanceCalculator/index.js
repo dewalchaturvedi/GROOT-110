@@ -1,4 +1,4 @@
-import { React } from 'react';
+import { React, useState } from 'react';
 import { Button, TextField } from '@mui/material';
 import Selector from '../Selector';
 import { Container } from '@mui/system';
@@ -11,21 +11,39 @@ const PerformanceCalculator = props => {
         margin: 20
     };
 
+    const [psiConfig, setPsiConfig] = useState({
+        numberOfRounds: 3,
+        platform: 'MSite,Desktop',
+        URL: ''
+    });
+
+    const handleTestRoundsChange = (e) => {
+        setPsiConfig({ ...psiConfig, numberOfRounds: e.target.value })
+    }
+
+    const handleURLChange = (e) => {
+        setPsiConfig({ ...psiConfig, URL: e.target.value })
+    }
+
+    const handleSelectorChange = (value) => {
+        setPsiConfig({ ...psiConfig, platform: value })
+    }
+
+    console.log(psiConfig)
+
     return (
         <Container>
             <h1>Page Speed Calculator</h1>
             <h4>Please enter the following fields to initiate build:</h4>
             <div>
-                <TextField id="standard-basic" label="Provide Outer Iteration Value for set run" variant="standard" style={textContainerStyle} />
+                <TextField id="standard-basic" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleTestRoundsChange} />
             </div>
             <div>
-                <TextField id="standard-basic" label="Enter Inner Iteration Count" variant="standard" style={textContainerStyle} />
-            </div>
-            <div>
-                <TextField id="standard-basic" label="Enter URL" variant="standard" style={textContainerStyle} />
+                <TextField id="standard-basic" label="Enter URL" variant="standard" style={textContainerStyle}
+                    onChange={handleURLChange} />
             </div>
             <div style={{ width: '30%', margin: 20 }}>
-                <Selector />
+                <Selector handleSelectorChange={handleSelectorChange} />
             </div>
             <div style={{ margin: 20 }}>
                 <Button variant="contained">Build</Button>
