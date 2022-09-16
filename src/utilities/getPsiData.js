@@ -9,13 +9,19 @@ import sleep from "./sleep";
 const getSpeedData = async ({
   iterationNum = 20,
   urlListCSV = "",
-  round = 3,
+  round = "1",
   device = "mobile", // desktop
+  setMobileTestScores,
+  setDesktopTestScores,
+  setMobileMedianScores,
+  setDesktopMedianScores,
 }) => {
+  const _round = Number.parseInt(round, 10);
+  const devices = device.split(",");
   // Get URL List
-  const resultObj = {};
-  const urlList = urlListCSV.split(',');
-  const reqCountPerUrl = iterationNum * round;
+  const resultObj = { mobile: {}, desktop: {} };
+  const urlList = urlListCSV.split(",");
+  const reqCountPerUrl = iterationNum * _round;
   // const totalReqCount = urlList.length * reqCountPerUrl;
   // const totalSuccessReq = 0;
 
@@ -23,65 +29,69 @@ const getSpeedData = async ({
   // urlList.forEach((url) => {
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
+  devices.forEach(async (device) => {
+    let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
 
-  let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
+    const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
+    console.log(
+      `The set of urls has been split up in ${Math.ceil(splitChunks)} chunk/s`
+    );
 
-  const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
-  console.log(
-    `The set of urls has been split up in ${Math.ceil(splitChunks)} chunk/s`
-  );
+    // Holding arrays for results
+    const labDataRes = [];
+    const labResErrors = [];
+    const retryList = [];
+    const fieldDataRes = [];
+    const fieldOriginRes = [];
+    const fieldOriginDomain = new Set();
+    let retryCount = 0;
+    let queriesPerMinuteLimitReached = false;
+    let queriesPerDayLimitReached = false;
 
-  // Holding arrays for results
-  const labDataRes = [];
-  const labResErrors = [];
-  const retryList = [];
-  const fieldDataRes = [];
-  const fieldOriginRes = [];
-  const fieldOriginDomain = new Set();
-  let retryCount = 0;
-  let queriesPerMinuteLimitReached = false;
-  let queriesPerDayLimitReached = false;
+    const getMainThreadDetails = (labAudit) => {
+      const mainThreadDetails = {
+        scriptEvaluation: 0,
+        paintCompositeRender: 0,
+        styleLayout: 0,
+        other: 0,
+        parseHTML: 0,
+        scriptParseCompile: 0,
+        garbageCollection: 0,
+      };
+      labAudit["mainthread-work-breakdown"].details.items.forEach((item) => {
+        mainThreadDetails[item.group] = item.duration;
+      });
+      return mainThreadDetails;
+    };
 
-  const getMainThreadDetails = (labAudit) => {
-    const mainThreadDetails = {
-      'scriptEvaluation': 0,
-      'paintCompositeRender': 0,
-      'styleLayout': 0,
-      'other': 0,
-      'parseHTML': 0,
-      'scriptParseCompile': 0,
-      'garbageCollection': 0,
-    }
-    labAudit['mainthread-work-breakdown'].details.items.forEach(item => {
-      mainThreadDetails[item.group] = item.duration;
-    });
-    return mainThreadDetails;
-  }
+    const getThirdPartySummary = (labAudit) => {
+      let thirdPartyBlockingTime = 0;
+      labAudit["third-party-summary"].details.items.forEach(
+        (item) => (thirdPartyBlockingTime += item.blockingTime)
+      );
+      return thirdPartyBlockingTime;
+    };
 
-  const getThirdPartySummary = (labAudit) => {
-    let thirdPartyBlockingTime = 0;
-    labAudit['third-party-summary'].details.items.forEach(item => thirdPartyBlockingTime += item.blockingTime);
-    return thirdPartyBlockingTime;
-  }
-  
-  while(allReqUrls.length) {
-    if (retryCount !== 0) {
-      console.log(`Retrying ${allReqUrls.length} urls`);
-    }
-    if (retryCount > 10) {
-      console.log('Retry count reached 10. I am tired, let me rest for a bit.');
-      break;
-    }
-    retryCount += 1;
-    const tempRetryList = []
-    // Break URL list into chunks to prevent API errors
-    const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
-    // console.log('chunks ============== \n', chunks);
-    // Loop through chunks
-    for (let [i, chunk] of chunks.entries()) {
-      // Iterate through list of URLs within chunk
-      // for (let round = 0; round < iterationNum; round++) {
-        // Log round of testing
+    while (allReqUrls.length) {
+      if (retryCount !== 0) {
+        console.log(`Retrying ${allReqUrls.length} urls`);
+      }
+      if (retryCount > 10) {
+        console.log(
+          "Retry count reached 10. I am tired, let me rest for a bit."
+        );
+        break;
+      }
+      retryCount += 1;
+      const tempRetryList = [];
+      // Break URL list into chunks to prevent API errors
+      const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
+      // console.log('chunks ============== \n', chunks);
+      // Loop through chunks
+      for (let [i, chunk] of chunks.entries()) {
+        // Iterate through list of URLs within chunk
+        // for (let _round = 0; _round < iterationNum; _round++) {
+        // Log _round of testing
         console.log(`Testing chunk #${i + 1}`);
 
         // console.log('chunk ================== \n', chunk);
@@ -95,15 +105,15 @@ const getSpeedData = async ({
 
         // Iterate through API responses
         const results = rawBatchResults.map((res, index) => {
-          if (res.status === 'fulfilled') {
-            console.log('response 0 ', chunk[index], res);
+          if (res.status === "fulfilled") {
+            console.log("response 0 ", chunk[index], res);
             // Variables to make extractions easier
             // const fieldMetrics = res.value.loadingExperience.metrics;
             // const originFallback = res.value.loadingExperience.origin_fallback;
             const labAudit = res.value.lighthouseResult.audits;
 
-            // If it's the 1st round of testing & test results have field data (CrUX)
-            // if (round === 0 && res.value.loadingExperience.metrics) {
+            // If it's the 1st _round of testing & test results have field data (CrUX)
+            // if (_round === 0 && res.value.loadingExperience.metrics) {
             //   if (!originFallback) {
             //     // Extract Field metrics (if there are)
             //     const fieldFCP =
@@ -160,28 +170,32 @@ const getSpeedData = async ({
             // }
 
             // Extract Lab metrics
-            const testUrl = removeTempPsiIdFromUrl(res.value.lighthouseResult.finalUrl);
-            const PerformanceScore = res.value.lighthouseResult.categories.performance.score || 'no data';
-            const TTFB = labAudit['server-response-time'].numericValue;
+            const testUrl = removeTempPsiIdFromUrl(
+              res.value.lighthouseResult.finalUrl
+            );
+            const PerformanceScore =
+              res.value.lighthouseResult.categories.performance.score ||
+              "no data";
+            const TTFB = labAudit["server-response-time"].numericValue;
             const TTI =
-              labAudit.metrics.details?.items[0].interactive ?? 'no data';
+              labAudit.metrics.details?.items[0].interactive ?? "no data";
             const labFCP =
               labAudit.metrics.details?.items[0].firstContentfulPaint ??
-              'no data';
+              "no data";
             const labLCP =
               labAudit.metrics.details?.items[0].largestContentfulPaint ??
-              'no data';
+              "no data";
             const labCLS = parseFloat(
-              labAudit['cumulative-layout-shift'].displayValue
+              labAudit["cumulative-layout-shift"].displayValue
             );
             const TBT =
-              labAudit.metrics.details?.items[0].totalBlockingTime ?? 'no data';
+              labAudit.metrics.details?.items[0].totalBlockingTime ?? "no data";
             const labMaxFID =
-              labAudit.metrics.details?.items[0].maxPotentialFID ?? 'no data';
+              labAudit.metrics.details?.items[0].maxPotentialFID ?? "no data";
             const speedIndex =
-              labAudit.metrics.details?.items[0].speedIndex ?? 'no data';
+              labAudit.metrics.details?.items[0].speedIndex ?? "no data";
             const pageSize = parseFloat(
-              (labAudit['total-byte-weight'].numericValue / 1000000).toFixed(3)
+              (labAudit["total-byte-weight"].numericValue / 1000000).toFixed(3)
             );
             // const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
             // const thirdPartySummary = getThirdPartySummary(labAudit);
@@ -193,8 +207,8 @@ const getSpeedData = async ({
             // const parseHTML = mainThreadDetails.parseHTML;
             // const scriptParseCompile = mainThreadDetails.scriptParseCompile;
             // const garbageCollection = mainThreadDetails.garbageCollection;
-            
-            const date = moment().format('YYYY-MM-DD HH:mm');
+
+            const date = moment().format("YYYY-MM-DD HH:mm");
 
             // Construct object
             const finalObj = {
@@ -223,18 +237,28 @@ const getSpeedData = async ({
             return finalObj;
           } else {
             retryList.push(chunk[index]);
-            console.log('rejected 0 ', chunk[index], res);
+            console.log("rejected 0 ", chunk[index], res);
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
               res.reason.response?.data.error.message ??
                 `Connection error: ${res.reason.message}`
             );
 
-            if (res.reason.response?.data.error.message.includes('Queries per day') || res.reason.message.includes('Queries per day')) {
-              queriesPerDayLimitReached = true
+            if (
+              res.reason.response?.data.error.message.includes(
+                "Queries per day"
+              ) ||
+              res.reason.message.includes("Queries per day")
+            ) {
+              queriesPerDayLimitReached = true;
             }
-            if (res.reason.response?.data.error.message.includes('Queries per minute') || res.reason.message.includes('Queries per minute')) {
-              queriesPerMinuteLimitReached = true
+            if (
+              res.reason.response?.data.error.message.includes(
+                "Queries per minute"
+              ) ||
+              res.reason.message.includes("Queries per minute")
+            ) {
+              queriesPerMinuteLimitReached = true;
             }
 
             labResErrors.push({
@@ -243,7 +267,7 @@ const getSpeedData = async ({
                 res.reason.response?.data.error.message ??
                 `Connection error: ${res.reason.message}`,
             });
-            console.log('Response Rejected', res);
+            console.log("Response Rejected", res);
           }
         });
 
@@ -254,119 +278,129 @@ const getSpeedData = async ({
         }
 
         if (queriesPerDayLimitReached) {
-          console.log("That's too much work in a day, lets wrap up for the day.");
-          await sleep(60000*60*24);
+          console.log(
+            "That's too much work in a day, lets wrap up for the day."
+          );
+          await sleep(60000 * 60 * 24);
         }
 
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
-      // }
-    }
-    allReqUrls = tempRetryList;
-  }
-
-  // If there if there is field data
-  if (fieldDataRes.length > 0) {
-    // Write field data results into CSV
-    console.log('Writing field data...');
-    // writeFile(`./${folder}/results-field${deviceDateTimeStr}.csv`, parse(fieldDataRes)).catch(
-    //   (err) => console.log(`Error writing field JSONfile: ${err}`)
-    // );
-  }
-  // If there if there is field data
-  if (fieldOriginRes.length > 0) {
-    // Write field data results into CSV
-    console.log('Writing origin field data...');
-    // writeFile(
-    //   `./${folder}/results-origin-field${deviceDateTimeStr}.csv`,
-    //   parse(fieldOriginRes)
-    // ).catch((err) => console.log(`Error writing Origin JSON file: ${err}`));
-  }
-
-  // Prevent map loop errors by filtering undefined responses (promise rejections)
-  const labDataResFilter = labDataRes.filter((obj) => obj !== undefined);
-  // Write lab data results into CSV
-  console.log('Writing lab data...', labDataResFilter);
-  // writeFile(`./${folder}/results-test${deviceDateTimeStr}.csv`, parse(labDataResFilter)).catch(
-  //   (err) => console.log(`Error writing Lab JSON file:${err}`)
-  // );
-
-  resultObj.test = labDataResFilter;
-  resultObj.errors = labResErrors;
-  // resultObj.field = fieldDataRes;
-
-  // If there are any errors
-  if (labResErrors.length > 0) {
-    // Write field data results into CSV
-    console.log('Writing error data...', labResErrors);
-    // writeFile(`./${folder}/errors${deviceDateTimeStr}.csv`, parse(labResErrors)).catch((err) =>
-    //   console.log(`Error writing Origin JSON file: ${err}`)
-    // );
-  }
-
-  // If running more than 1 test calculate median
-  if (iterationNum > 1) {
-    console.log('Calculating median...');
-
-    // Collect analysed URLs in set
-    const seen = new Set();
-
-    // Reduce labDataRes array to calcualte median for the same URLs in array
-    const labMedian = labDataResFilter.reduce((acc, cur, index, labArray) => {
-      if (!seen.has(cur.testUrl)) {
-        // Add URL to seen list
-        seen.add(cur.testUrl);
-
-        // Filter same URLs from results
-        const sameUrl = labArray.filter((obj) => obj.testUrl === cur.testUrl);
-
-        // Create object witht the same properties but calculating the median value per url
-        const objMedian = {
-          testUrl: cur.testUrl,
-          PerformanceScore: median(sameUrl.map(({ PerformanceScore }) => PerformanceScore)),
-          TTFB: median(sameUrl.map(({ TTFB }) => TTFB)),
-          labFCP: median(sameUrl.map(({ labFCP }) => labFCP)),
-          labLCP: median(sameUrl.map(({ labLCP }) => labLCP)),
-          labCLS: median(sameUrl.map(({ labCLS }) => labCLS)),
-          TTI: median(sameUrl.map(({ TTI }) => TTI)),
-          speedIndex: median(sameUrl.map(({ speedIndex }) => speedIndex)),
-          TBT: median(sameUrl.map(({ TBT }) => TBT)),
-          // thirdPartySummary: median(sameUrl.map(({ thirdPartySummary }) => thirdPartySummary)),
-          labMaxFID: median(sameUrl.map(({ labMaxFID }) => labMaxFID)),
-          // mainThread: median(sameUrl.map(({ mainThread }) => mainThread)),
-          // scriptEvaluation: median(sameUrl.map(({ scriptEvaluation }) => scriptEvaluation)),
-          // paintCompositeRender: median(sameUrl.map(({ paintCompositeRender }) => paintCompositeRender)),
-          // styleLayout: median(sameUrl.map(({ styleLayout }) => styleLayout)),
-          // other: median(sameUrl.map(({ other }) => other)),
-          // parseHTML: median(sameUrl.map(({ parseHTML }) => parseHTML)),
-          // scriptParseCompile: median(sameUrl.map(({ scriptParseCompile }) => scriptParseCompile)),
-          // garbageCollection: median(sameUrl.map(({ garbageCollection }) => garbageCollection)),
-          pageSize: median(sameUrl.map(({ pageSize }) => pageSize)),
-          date: moment().format('YYYY-MM-DD HH:mm'),
-        };
-
-        // Push to accumulator
-        acc.push(objMedian);
+        // }
       }
+      allReqUrls = tempRetryList;
+    }
 
-      // Return accumulator
-      return acc;
-    }, []);
+    // If there if there is field data
+    if (fieldDataRes.length > 0) {
+      // Write field data results into CSV
+      console.log("Writing field data...");
+      // writeFile(`./${folder}/results-field${deviceDateTimeStr}.csv`, parse(fieldDataRes)).catch(
+      //   (err) => console.log(`Error writing field JSONfile: ${err}`)
+      // );
+    }
+    // If there if there is field data
+    if (fieldOriginRes.length > 0) {
+      // Write field data results into CSV
+      console.log("Writing origin field data...");
+      // writeFile(
+      //   `./${folder}/results-origin-field${deviceDateTimeStr}.csv`,
+      //   parse(fieldOriginRes)
+      // ).catch((err) => console.log(`Error writing Origin JSON file: ${err}`));
+    }
 
-    // Write medians to CSV file
-    // writeFile(`./${folder}/results-median${deviceDateTimeStr}.csv`, parse(labMedian)).catch((err) =>
-    //   console.log(`Error writing file:${err}`)
+    // Prevent map loop errors by filtering undefined responses (promise rejections)
+    const labDataResFilter = labDataRes.filter((obj) => obj !== undefined);
+    // Write lab data results into CSV
+    console.log("Writing lab data...", labDataResFilter);
+    // writeFile(`./${folder}/results-test${deviceDateTimeStr}.csv`, parse(labDataResFilter)).catch(
+    //   (err) => console.log(`Error writing Lab JSON file:${err}`)
     // );
-    console.log('Median scores.......', labMedian);
-    resultObj.median = labMedian;
-  }
+
+    resultObj[device].test = labDataResFilter;
+    resultObj[device].errors = labResErrors;
+    // resultObj[device].field = fieldDataRes;
+
+    // If there are any errors
+    if (labResErrors.length > 0) {
+      // Write field data results into CSV
+      console.log("Writing error data...", labResErrors);
+      // writeFile(`./${folder}/errors${deviceDateTimeStr}.csv`, parse(labResErrors)).catch((err) =>
+      //   console.log(`Error writing Origin JSON file: ${err}`)
+      // );
+    }
+
+    // If running more than 1 test calculate median
+    if (iterationNum > 1) {
+      console.log("Calculating median...");
+
+      // Collect analysed URLs in set
+      const seen = new Set();
+
+      // Reduce labDataRes array to calcualte median for the same URLs in array
+      const labMedian = labDataResFilter.reduce((acc, cur, index, labArray) => {
+        if (!seen.has(cur.testUrl)) {
+          // Add URL to seen list
+          seen.add(cur.testUrl);
+
+          // Filter same URLs from results
+          const sameUrl = labArray.filter((obj) => obj.testUrl === cur.testUrl);
+
+          // Create object witht the same properties but calculating the median value per url
+          const objMedian = {
+            testUrl: cur.testUrl,
+            PerformanceScore: median(
+              sameUrl.map(({ PerformanceScore }) => PerformanceScore)
+            ),
+            TTFB: median(sameUrl.map(({ TTFB }) => TTFB)),
+            labFCP: median(sameUrl.map(({ labFCP }) => labFCP)),
+            labLCP: median(sameUrl.map(({ labLCP }) => labLCP)),
+            labCLS: median(sameUrl.map(({ labCLS }) => labCLS)),
+            TTI: median(sameUrl.map(({ TTI }) => TTI)),
+            speedIndex: median(sameUrl.map(({ speedIndex }) => speedIndex)),
+            TBT: median(sameUrl.map(({ TBT }) => TBT)),
+            // thirdPartySummary: median(sameUrl.map(({ thirdPartySummary }) => thirdPartySummary)),
+            labMaxFID: median(sameUrl.map(({ labMaxFID }) => labMaxFID)),
+            // mainThread: median(sameUrl.map(({ mainThread }) => mainThread)),
+            // scriptEvaluation: median(sameUrl.map(({ scriptEvaluation }) => scriptEvaluation)),
+            // paintCompositeRender: median(sameUrl.map(({ paintCompositeRender }) => paintCompositeRender)),
+            // styleLayout: median(sameUrl.map(({ styleLayout }) => styleLayout)),
+            // other: median(sameUrl.map(({ other }) => other)),
+            // parseHTML: median(sameUrl.map(({ parseHTML }) => parseHTML)),
+            // scriptParseCompile: median(sameUrl.map(({ scriptParseCompile }) => scriptParseCompile)),
+            // garbageCollection: median(sameUrl.map(({ garbageCollection }) => garbageCollection)),
+            pageSize: median(sameUrl.map(({ pageSize }) => pageSize)),
+            date: moment().format("YYYY-MM-DD HH:mm"),
+          };
+
+          // Push to accumulator
+          acc.push(objMedian);
+        }
+
+        // Return accumulator
+        return acc;
+      }, []);
+
+      // Write medians to CSV file
+      // writeFile(`./${folder}/results-median${deviceDateTimeStr}.csv`, parse(labMedian)).catch((err) =>
+      //   console.log(`Error writing file:${err}`)
+      // );
+      console.log("Median scores.......", labMedian);
+      resultObj[device].median = labMedian;
+    }
+  });
 
   // Log amount of errors
-  console.log(`Encountered ${labResErrors.length} errors running the tests`);
-  // console.log(`Ran ${round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
+  console.log(
+    `Encountered ${
+      (resultObj.mobile.error?.length || 0) +
+      (resultObj.desktop.error?.length || 0)
+    } errors running the tests`
+  );
+  // console.log(`Ran ${_round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
   console.timeEnd();
 
-  console.log('Final resultObj', resultObj);
+  console.log("Final resultObj", resultObj);
 
   return resultObj;
 };
