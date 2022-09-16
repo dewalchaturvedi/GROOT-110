@@ -284,6 +284,12 @@ const getSpeedData = async ({
           await sleep(60000 * 60 * 24);
         }
 
+        if (device === 'mobile ') {
+          setMobileTestScores(prevMobileTestScores => [...prevMobileTestScores, ...results]);
+        }
+        if (device === 'destkop ') {
+          setDesktopTestScores(prevDesktopTestScores => [...prevDesktopTestScores, ...results]);
+        }
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
         // }
@@ -387,6 +393,12 @@ const getSpeedData = async ({
       // );
       console.log("Median scores.......", labMedian);
       resultObj[device].median = labMedian;
+      if (device === 'mobile ') {
+        setMobileMedianScores([...labMedian]);
+      }
+      if (device === 'destkop ') {
+        setDesktopMedianScores([...labMedian]);
+      }
     }
   });
 
