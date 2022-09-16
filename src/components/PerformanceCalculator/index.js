@@ -1,8 +1,9 @@
-import { React } from 'react';
+import { React, useEffect } from 'react';
 import { Button, TextField } from '@mui/material';
 import Selector from '../Selector';
 import { Container } from '@mui/system';
 import CustomizedTables from '../Table';
+import getSpeedData from '../../utilities/getPsiData';
 
 const PerformanceCalculator = props => {
 
@@ -10,6 +11,10 @@ const PerformanceCalculator = props => {
         width: '70%',
         margin: 20
     };
+
+    useEffect(() => {
+        getSpeedData();
+    }, []);
 
     return (
         <Container>
