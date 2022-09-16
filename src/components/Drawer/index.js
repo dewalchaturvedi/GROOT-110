@@ -18,12 +18,12 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import InsightsIcon from '@mui/icons-material/Insights';
 import HomeIcon from '@mui/icons-material/Home';
-import MailIcon from '@mui/icons-material/Mail';
 import PerformanceCalculator from '../PerformanceCalculator';
 import Insights from '../Insights';
+import { addRow } from '../../utilities/firebaseUtils';
+import { collection, getFirestore } from 'firebase/firestore';
 
 const drawerWidth = 240;
-
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
     ({ theme, open }) => ({
         flexGrow: 1,
@@ -69,13 +69,17 @@ const DrawerHeader = styled('div')(({ theme }) => ({
     justifyContent: 'flex-end',
 }));
 
-export default function PersistentDrawerLeft() {
+export default function PersistentDrawerLeft(props) {
+    let {fire = {}} = props;
+    let firestore = getFirestore();
+    var dbCollection = collection(firestore,"/psi-99");
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const [showHome, setShowHome] = React.useState(true);
 
     const handleDrawerOpen = () => {
         setOpen(true);
+        addRow(dbCollection,{"cls":0.01,"page_score":'76'})
     };
 
     const handleDrawerClose = () => {
