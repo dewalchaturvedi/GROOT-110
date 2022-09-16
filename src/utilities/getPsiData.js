@@ -4,12 +4,13 @@ import { chunkArray } from "./chunkArray";
 import { median } from "./medianMath";
 import { apiRequest } from "./psi-api-request";
 import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
+import sleep from "./sleep";
 
 const getSpeedData = async ({
-  iterationNum = 1,
-  urlListCSV = "https://www.99acres.com,https://www.99acres.com/Noida-Real-Estate.htm",
+  iterationNum = 20,
+  urlListCSV = "",
   round = 3,
-  device = "mobile",
+  device = "mobile", // desktop
 }) => {
   // Get URL List
   const resultObj = {};
@@ -23,7 +24,7 @@ const getSpeedData = async ({
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
 
-  const allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
+  let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
 
   const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
   console.log(
@@ -37,6 +38,9 @@ const getSpeedData = async ({
   const fieldDataRes = [];
   const fieldOriginRes = [];
   const fieldOriginDomain = new Set();
+  let retryCount = 0;
+  let queriesPerMinuteLimitReached = false;
+  let queriesPerDayLimitReached = false;
 
   const getMainThreadDetails = (labAudit) => {
     const mainThreadDetails = {
@@ -59,187 +63,207 @@ const getSpeedData = async ({
     labAudit['third-party-summary'].details.items.forEach(item => thirdPartyBlockingTime += item.blockingTime);
     return thirdPartyBlockingTime;
   }
-
-  // Break URL list into chunks to prevent API errors
-  const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
-  // console.log('chunks ============== \n', chunks);
-  // Loop through chunks
-  for (let [i, chunk] of chunks.entries()) {
-    // Iterate through list of URLs within chunk
-    for (let round = 0; round < iterationNum; round++) {
-      // Log round of testing
-      console.log(`Testing round #${round + 1} of chunk #${i + 1}`);
-
-      // console.log('chunk ================== \n', chunk);
-      // Loop trough array to create batch of promises (array)
-      const promises = chunk.map((testUrl) => apiRequest(testUrl, device));
-
-      // Send all requests in parallel
-      const rawBatchResults = await Promise.allSettled(promises);
-
-      // Iterate through API responses
-      const results = rawBatchResults.map((res, index) => {
-        if (res.status === 'fulfilled') {
-          // Variables to make extractions easier
-          const fieldMetrics = res.value.loadingExperience.metrics;
-          const originFallback = res.value.loadingExperience.origin_fallback;
-          const labAudit = res.value.lighthouseResult.audits;
-
-          // If it's the 1st round of testing & test results have field data (CrUX)
-          if (round === 0 && res.value.loadingExperience.metrics) {
-            if (!originFallback) {
-              // Extract Field metrics (if there are)
-              const fieldFCP =
-                fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
-              const fieldFID =
-                fieldMetrics.FIRST_INPUT_DELAY_MS?.percentile ?? 'no data';
-              const fieldLCP =
-                fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile ??
-                'no data';
-              const fieldCLS =
-                fieldMetrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile ??
-                'no data';
-
-              // Construct FieldResult object
-              const fieldResObj = {
-                'test url': res.value.loadingExperience.id,
-                fcp: fieldFCP,
-                fid: fieldFID,
-                lcp: fieldLCP,
-                cls: fieldCLS / 100,
-                date: moment().format('YYYY-MM-DD HH:mm'),
-              };
-              // Push to fieldRes array
-              fieldDataRes.push(fieldResObj);
-            } else {
-              if (!fieldOriginDomain.has(res.value.loadingExperience.id)) {
-                console.log(
-                  `No field data for ${res.value.id}, extracting origin data from ${res.value.loadingExperience.id} instead... `
-                );
-
-                // Otherwise Extract Origin Field metrics (if there are)
-                const fieldFCP =
-                  fieldMetrics.FIRST_CONTENTFUL_PAINT_MS.percentile;
-                const fieldFID = fieldMetrics.FIRST_INPUT_DELAY_MS.percentile;
-                const fieldLCP =
-                  fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS.percentile;
-                const fieldCLS =
-                  fieldMetrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile;
-
-                // Construct fieldResult object
-                const fieldResObj = {
-                  'test url': res.value.loadingExperience.id,
-                  fcp: fieldFCP,
-                  fid: fieldFID,
-                  lcp: fieldLCP,
-                  cls: fieldCLS / 100,
-                  date: moment().format('YYYY-MM-DD HH:mm'),
-                };
-                // Push object to fieldOrigin array
-                fieldOriginRes.push(fieldResObj);
-                fieldOriginDomain.add(res.value.loadingExperience.id);
-              }
-            }
-          }
-
-          // Extract Lab metrics
-          const testUrl = removeTempPsiIdFromUrl(res.value.lighthouseResult.finalUrl);
-          const PerformanceScore = res.value.lighthouseResult.categories.performance.score || 'no data';
-          const TTFB = labAudit['server-response-time'].numericValue;
-          const TTI =
-            labAudit.metrics.details?.items[0].interactive ?? 'no data';
-          const labFCP =
-            labAudit.metrics.details?.items[0].firstContentfulPaint ??
-            'no data';
-          const labLCP =
-            labAudit.metrics.details?.items[0].largestContentfulPaint ??
-            'no data';
-          const labCLS = parseFloat(
-            labAudit['cumulative-layout-shift'].displayValue
-          );
-          const TBT =
-            labAudit.metrics.details?.items[0].totalBlockingTime ?? 'no data';
-          const labMaxFID =
-            labAudit.metrics.details?.items[0].maxPotentialFID ?? 'no data';
-          const speedIndex =
-            labAudit.metrics.details?.items[0].speedIndex ?? 'no data';
-          const pageSize = parseFloat(
-            (labAudit['total-byte-weight'].numericValue / 1000000).toFixed(3)
-          );
-          // const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
-          // const thirdPartySummary = getThirdPartySummary(labAudit);
-          // const mainThreadDetails = getMainThreadDetails(labAudit);
-          // const scriptEvaluation = mainThreadDetails.scriptEvaluation
-          // const paintCompositeRender = mainThreadDetails.paintCompositeRender;
-          // const styleLayout = mainThreadDetails.styleLayout;
-          // const other = mainThreadDetails.other;
-          // const parseHTML = mainThreadDetails.parseHTML;
-          // const scriptParseCompile = mainThreadDetails.scriptParseCompile;
-          // const garbageCollection = mainThreadDetails.garbageCollection;
-           
-          const date = moment().format('YYYY-MM-DD HH:mm');
-
-          // Construct object
-          const finalObj = {
-            testUrl,
-            PerformanceScore,
-            TTFB,
-            labFCP,
-            labLCP,
-            labCLS,
-            TTI,
-            speedIndex,
-            TBT,
-            labMaxFID,
-            pageSize,
-            // thirdPartySummary,
-            // mainThread,
-            // scriptEvaluation,
-            // paintCompositeRender,
-            // styleLayout,
-            // other,
-            // parseHTML,
-            // scriptParseCompile,
-            // garbageCollection,
-            date,
-          };
-          return finalObj;
-        } else {
-          console.log(`Problem retrieving results for ${urlList[index]}`);
-          console.log(
-            res.reason.response?.data.error.message ??
-              `Connection error: ${res.reason.message}`
-          );
-          labResErrors.push({
-            url: urlList[index],
-            reason:
-              res.reason.response?.data.error.message ??
-              `Connection error: ${res.reason.message}`,
-          });
-        }
-      });
-      // Push spreaded results to labDataRes array
-      labDataRes.push(...results);
+  
+  while(allReqUrls.length) {
+    if (retryCount !== 0) {
+      console.log(`Retrying ${allReqUrls.length} urls`);
     }
+    if (retryCount > 10) {
+      console.log('Retry count reached 10. I am tired, let me rest for a bit.');
+      break;
+    }
+    retryCount += 1;
+    const tempRetryList = []
+    // Break URL list into chunks to prevent API errors
+    const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
+    // console.log('chunks ============== \n', chunks);
+    // Loop through chunks
+    for (let [i, chunk] of chunks.entries()) {
+      // Iterate through list of URLs within chunk
+      // for (let round = 0; round < iterationNum; round++) {
+        // Log round of testing
+        console.log(`Testing chunk #${i + 1}`);
+
+        // console.log('chunk ================== \n', chunk);
+        // Loop trough array to create batch of promises (array)
+        const promises = chunk.map((testUrl) => apiRequest(testUrl, device));
+
+        // console.log('chunk ', chunk);
+
+        // Send all requests in parallel
+        const rawBatchResults = await Promise.allSettled(promises);
+
+        // Iterate through API responses
+        const results = rawBatchResults.map((res, index) => {
+          if (res.status === 'fulfilled') {
+            console.log('response 0 ', chunk[index], res);
+            // Variables to make extractions easier
+            // const fieldMetrics = res.value.loadingExperience.metrics;
+            // const originFallback = res.value.loadingExperience.origin_fallback;
+            const labAudit = res.value.lighthouseResult.audits;
+
+            // If it's the 1st round of testing & test results have field data (CrUX)
+            // if (round === 0 && res.value.loadingExperience.metrics) {
+            //   if (!originFallback) {
+            //     // Extract Field metrics (if there are)
+            //     const fieldFCP =
+            //       fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
+            //     const fieldFID =
+            //       fieldMetrics.FIRST_INPUT_DELAY_MS?.percentile ?? 'no data';
+            //     const fieldLCP =
+            //       fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile ??
+            //       'no data';
+            //     const fieldCLS =
+            //       fieldMetrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile ??
+            //       'no data';
+
+            //     // Construct FieldResult object
+            //     const fieldResObj = {
+            //       'test url': res.value.loadingExperience.id,
+            //       fcp: fieldFCP,
+            //       fid: fieldFID,
+            //       lcp: fieldLCP,
+            //       cls: fieldCLS / 100,
+            //       date: moment().format('YYYY-MM-DD HH:mm'),
+            //     };
+            //     // Push to fieldRes array
+            //     fieldDataRes.push(fieldResObj);
+            //   } else {
+            //     if (!fieldOriginDomain.has(res.value.loadingExperience.id)) {
+            //       console.log(
+            //         `No field data for ${res.value.id}, extracting origin data from ${res.value.loadingExperience.id} instead... `
+            //       );
+
+            //       // Otherwise Extract Origin Field metrics (if there are)
+            //       const fieldFCP =
+            //         fieldMetrics.FIRST_CONTENTFUL_PAINT_MS.percentile;
+            //       const fieldFID = fieldMetrics.FIRST_INPUT_DELAY_MS.percentile;
+            //       const fieldLCP =
+            //         fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS.percentile;
+            //       const fieldCLS =
+            //         fieldMetrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile;
+
+            //       // Construct fieldResult object
+            //       const fieldResObj = {
+            //         'test url': res.value.loadingExperience.id,
+            //         fcp: fieldFCP,
+            //         fid: fieldFID,
+            //         lcp: fieldLCP,
+            //         cls: fieldCLS / 100,
+            //         date: moment().format('YYYY-MM-DD HH:mm'),
+            //       };
+            //       // Push object to fieldOrigin array
+            //       fieldOriginRes.push(fieldResObj);
+            //       fieldOriginDomain.add(res.value.loadingExperience.id);
+            //     }
+            //   }
+            // }
+
+            // Extract Lab metrics
+            const testUrl = removeTempPsiIdFromUrl(res.value.lighthouseResult.finalUrl);
+            const PerformanceScore = res.value.lighthouseResult.categories.performance.score || 'no data';
+            const TTFB = labAudit['server-response-time'].numericValue;
+            const TTI =
+              labAudit.metrics.details?.items[0].interactive ?? 'no data';
+            const labFCP =
+              labAudit.metrics.details?.items[0].firstContentfulPaint ??
+              'no data';
+            const labLCP =
+              labAudit.metrics.details?.items[0].largestContentfulPaint ??
+              'no data';
+            const labCLS = parseFloat(
+              labAudit['cumulative-layout-shift'].displayValue
+            );
+            const TBT =
+              labAudit.metrics.details?.items[0].totalBlockingTime ?? 'no data';
+            const labMaxFID =
+              labAudit.metrics.details?.items[0].maxPotentialFID ?? 'no data';
+            const speedIndex =
+              labAudit.metrics.details?.items[0].speedIndex ?? 'no data';
+            const pageSize = parseFloat(
+              (labAudit['total-byte-weight'].numericValue / 1000000).toFixed(3)
+            );
+            // const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
+            // const thirdPartySummary = getThirdPartySummary(labAudit);
+            // const mainThreadDetails = getMainThreadDetails(labAudit);
+            // const scriptEvaluation = mainThreadDetails.scriptEvaluation
+            // const paintCompositeRender = mainThreadDetails.paintCompositeRender;
+            // const styleLayout = mainThreadDetails.styleLayout;
+            // const other = mainThreadDetails.other;
+            // const parseHTML = mainThreadDetails.parseHTML;
+            // const scriptParseCompile = mainThreadDetails.scriptParseCompile;
+            // const garbageCollection = mainThreadDetails.garbageCollection;
+            
+            const date = moment().format('YYYY-MM-DD HH:mm');
+
+            // Construct object
+            const finalObj = {
+              testUrl,
+              PerformanceScore,
+              TTFB,
+              labFCP,
+              labLCP,
+              labCLS,
+              TTI,
+              speedIndex,
+              TBT,
+              labMaxFID,
+              pageSize,
+              // thirdPartySummary,
+              // mainThread,
+              // scriptEvaluation,
+              // paintCompositeRender,
+              // styleLayout,
+              // other,
+              // parseHTML,
+              // scriptParseCompile,
+              // garbageCollection,
+              date,
+            };
+            return finalObj;
+          } else {
+            retryList.push(chunk[index]);
+            console.log('rejected 0 ', chunk[index], res);
+            console.log(`Problem retrieving results for ${chunk[index]}`);
+            console.log(
+              res.reason.response?.data.error.message ??
+                `Connection error: ${res.reason.message}`
+            );
+
+            if (res.reason.response?.data.error.message.includes('Queries per day') || res.reason.message.includes('Queries per day')) {
+              queriesPerDayLimitReached = true
+            }
+            if (res.reason.response?.data.error.message.includes('Queries per minute') || res.reason.message.includes('Queries per minute')) {
+              queriesPerMinuteLimitReached = true
+            }
+
+            labResErrors.push({
+              url: chunk[index],
+              reason:
+                res.reason.response?.data.error.message ??
+                `Connection error: ${res.reason.message}`,
+            });
+            console.log('Response Rejected', res);
+          }
+        });
+
+        if (queriesPerMinuteLimitReached) {
+          console.log("That's too much work in a minute, lets take a break.");
+          // console.log('Reached Queries per minute limit, waiting for 1 minute');
+          await sleep(60000);
+        }
+
+        if (queriesPerDayLimitReached) {
+          console.log("That's too much work in a day, lets wrap up for the day.");
+          await sleep(60000*60*24);
+        }
+
+        // Push spreaded results to labDataRes array
+        labDataRes.push(...results);
+      // }
+    }
+    allReqUrls = tempRetryList;
   }
-
-  resultObj.test = labDataRes;
-  resultObj.errors = labResErrors;
-  resultObj.field = fieldDataRes;
-
-  // // retry failed urls
-  // while (retryList.length) {
-  //   const retryChunks = chunkArray(retryList, MAX_PARALLEL_REQ_COUNT);
-
-  //   for (let [i, chunk] of chunks.entries()) {
-  //     const promises = chunk.map((testUrl) => apiRequest(testUrl, device)); 
-  //   }
-  //   const rawBatchResults = await Promise.allSettled(promises);
-
-    
-
-
-  // }
 
   // If there if there is field data
   if (fieldDataRes.length > 0) {
@@ -266,6 +290,10 @@ const getSpeedData = async ({
   // writeFile(`./${folder}/results-test${deviceDateTimeStr}.csv`, parse(labDataResFilter)).catch(
   //   (err) => console.log(`Error writing Lab JSON file:${err}`)
   // );
+
+  resultObj.test = labDataResFilter;
+  resultObj.errors = labResErrors;
+  // resultObj.field = fieldDataRes;
 
   // If there are any errors
   if (labResErrors.length > 0) {
@@ -335,7 +363,7 @@ const getSpeedData = async ({
 
   // Log amount of errors
   console.log(`Encountered ${labResErrors.length} errors running the tests`);
-  console.log(`Ran ${round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
+  // console.log(`Ran ${round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
   console.timeEnd();
 
   console.log('Final resultObj', resultObj);
