@@ -19,9 +19,9 @@ const Selector = props => {
                 onChange={handleChange}
             // onChange={handleChange}
             >
-                <MenuItem value={"Desktop"} >Desktop</MenuItem>
-                <MenuItem value={"MSite"} >M-Site</MenuItem>
-                <MenuItem value={"MSite,Desktop"} >Both</MenuItem>
+                <MenuItem value={"desktop"} >Desktop</MenuItem>
+                <MenuItem value={"mobile"} >M-Site</MenuItem>
+                <MenuItem value={"desktop,mobile"} >Both</MenuItem>
             </Select>
         </FormControl>
     );

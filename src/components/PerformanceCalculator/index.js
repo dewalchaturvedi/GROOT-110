@@ -6,27 +6,29 @@ import CustomizedTables from '../Table';
 import getSpeedData from '../../utilities/getPsiData';
 import PersistentDrawerLeft from '../Drawer';
 
+const textContainerStyle = {
+    width: '70%',
+    margin: 20
+};
+
 const PerformanceCalculator = props => {
-
-    const textContainerStyle = {
-        width: '70%',
-        margin: 20
-    };
-
     const [psiConfig, setPsiConfig] = useState({
         numberOfRounds: 3,
-        platform: 'MSite,Desktop',
-        URL: ''
+        platform: 'desktop,mobile',
+        urlListCSV: ''
     });
+
+    const [testScores, setTestScores] = useState([]);
+    const [medianScores, setMedianScores] = useState([]);
 
     const handleChange = (e) => {
         setPsiConfig({ ...psiConfig, [e.target.id ? e.target.id : e.target.name]: e.target.value })
     }
 
-    // useEffect(() => {
-    //     getSpeedData();
-    // }, []);
-
+    useEffect(() => {
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setTestScores, setMedianScores });
+    }, []);
+    console.log(psiConfig)
     return (
         <div>
             <Container>
@@ -36,7 +38,7 @@ const PerformanceCalculator = props => {
                     <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleChange} />
                 </div>
                 <div>
-                    <TextField id="URL" label="Enter URL" variant="standard" style={textContainerStyle}
+                    <TextField id="urlListCSV" label="Enter URL" variant="standard" style={textContainerStyle}
                         onChange={handleChange} />
                 </div>
                 <div style={{ width: '30%', margin: 20 }}>
