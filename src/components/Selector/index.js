@@ -4,7 +4,7 @@ import React from 'react';
 const Selector = props => {
 
     const handleChange = (e) => {
-        props.handleSelectorChange(e.target.value);
+        props.handleSelectorChange(e);
     }
 
     return (
@@ -13,6 +13,7 @@ const Selector = props => {
             <Select
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
+                name='platform'
                 // value={age}
                 label="Age"
                 onChange={handleChange}
