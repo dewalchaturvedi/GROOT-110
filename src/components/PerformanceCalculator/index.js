@@ -18,15 +18,17 @@ const PerformanceCalculator = props => {
         urlListCSV: ''
     });
 
-    const [testScores, setTestScores] = useState([]);
-    const [medianScores, setMedianScores] = useState([]);
+    const [mobileTestScores, setMobileTestScores] = useState([]);
+    const [desktopTestScores, setDesktopTestScores] = useState([]);
+    const [mobileMedianScores, setMobileMedianScores] = useState([]);
+    const [desktopMedianScores, setDesktopMedianScores] = useState([]);
 
     const handleChange = (e) => {
         setPsiConfig({ ...psiConfig, [e.target.id ? e.target.id : e.target.name]: e.target.value })
     }
 
     useEffect(() => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setTestScores, setMedianScores });
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores });
     }, []);
     console.log(psiConfig)
     return (
