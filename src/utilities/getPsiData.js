@@ -5,7 +5,12 @@ import { median } from "./medianMath";
 import { apiRequest } from "./psi-api-request";
 import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 
-const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.com,https://www.99acres.com/Noida-Real-Estate.htm', round = 3, device = 'mobile') => {
+const getSpeedData = async ({
+  iterationNum = 1,
+  urlListCSV = "https://www.99acres.com,https://www.99acres.com/Noida-Real-Estate.htm",
+  round = 3,
+  device = "mobile",
+}) => {
   // Get URL List
   const resultObj = {};
   const urlList = urlListCSV.split(',');
@@ -15,7 +20,7 @@ const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.
 
   // const urlReqObj = {};
   // urlList.forEach((url) => {
-  //   urlReqObj[url] = reqCountPerUrl;
+  //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
 
   const allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
