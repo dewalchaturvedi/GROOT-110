@@ -5,9 +5,14 @@ import { median } from "./medianMath";
 import { apiRequest } from "./psi-api-request";
 import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 
-const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.com,https://www.99acres.com/Noida-Real-Estate.htm', round = 3, device = 'mobile') => {
+const getSpeedData = async ({
+  iterationNum = 1,
+  urlListCSV = "https://www.99acres.com,https://www.99acres.com/Noida-Real-Estate.htm",
+  round = 3,
+  device = "mobile",
+}) => {
   // Get URL List
-  const resultObj = {}
+  const resultObj = {};
   const urlList = urlListCSV.split(',');
   const reqCountPerUrl = iterationNum * round;
   // const totalReqCount = urlList.length * reqCountPerUrl;
@@ -15,7 +20,7 @@ const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.
 
   // const urlReqObj = {};
   // urlList.forEach((url) => {
-  //   urlReqObj[url] = reqCountPerUrl;
+  //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
 
   const allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
@@ -161,16 +166,16 @@ const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.
           const pageSize = parseFloat(
             (labAudit['total-byte-weight'].numericValue / 1000000).toFixed(3)
           );
-          const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
-          const thirdPartySummary = getThirdPartySummary(labAudit);
-          const mainThreadDetails = getMainThreadDetails(labAudit);
-          const scriptEvaluation = mainThreadDetails.scriptEvaluation
-          const paintCompositeRender = mainThreadDetails.paintCompositeRender;
-          const styleLayout = mainThreadDetails.styleLayout;
-          const other = mainThreadDetails.other;
-          const parseHTML = mainThreadDetails.parseHTML;
-          const scriptParseCompile = mainThreadDetails.scriptParseCompile;
-          const garbageCollection = mainThreadDetails.garbageCollection;
+          // const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
+          // const thirdPartySummary = getThirdPartySummary(labAudit);
+          // const mainThreadDetails = getMainThreadDetails(labAudit);
+          // const scriptEvaluation = mainThreadDetails.scriptEvaluation
+          // const paintCompositeRender = mainThreadDetails.paintCompositeRender;
+          // const styleLayout = mainThreadDetails.styleLayout;
+          // const other = mainThreadDetails.other;
+          // const parseHTML = mainThreadDetails.parseHTML;
+          // const scriptParseCompile = mainThreadDetails.scriptParseCompile;
+          // const garbageCollection = mainThreadDetails.garbageCollection;
            
           const date = moment().format('YYYY-MM-DD HH:mm');
 
@@ -187,15 +192,15 @@ const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.
             TBT,
             labMaxFID,
             pageSize,
-            thirdPartySummary,
-            mainThread,
-            scriptEvaluation,
-            paintCompositeRender,
-            styleLayout,
-            other,
-            parseHTML,
-            scriptParseCompile,
-            garbageCollection,
+            // thirdPartySummary,
+            // mainThread,
+            // scriptEvaluation,
+            // paintCompositeRender,
+            // styleLayout,
+            // other,
+            // parseHTML,
+            // scriptParseCompile,
+            // garbageCollection,
             date,
           };
           return finalObj;
@@ -298,16 +303,16 @@ const getSpeedData = async (iterationNum = 1, urlListCSV = 'https://www.99acres.
           TTI: median(sameUrl.map(({ TTI }) => TTI)),
           speedIndex: median(sameUrl.map(({ speedIndex }) => speedIndex)),
           TBT: median(sameUrl.map(({ TBT }) => TBT)),
-          thirdPartySummary: median(sameUrl.map(({ thirdPartySummary }) => thirdPartySummary)),
+          // thirdPartySummary: median(sameUrl.map(({ thirdPartySummary }) => thirdPartySummary)),
           labMaxFID: median(sameUrl.map(({ labMaxFID }) => labMaxFID)),
-          mainThread: median(sameUrl.map(({ mainThread }) => mainThread)),
-          scriptEvaluation: median(sameUrl.map(({ scriptEvaluation }) => scriptEvaluation)),
-          paintCompositeRender: median(sameUrl.map(({ paintCompositeRender }) => paintCompositeRender)),
-          styleLayout: median(sameUrl.map(({ styleLayout }) => styleLayout)),
-          other: median(sameUrl.map(({ other }) => other)),
-          parseHTML: median(sameUrl.map(({ parseHTML }) => parseHTML)),
-          scriptParseCompile: median(sameUrl.map(({ scriptParseCompile }) => scriptParseCompile)),
-          garbageCollection: median(sameUrl.map(({ garbageCollection }) => garbageCollection)),
+          // mainThread: median(sameUrl.map(({ mainThread }) => mainThread)),
+          // scriptEvaluation: median(sameUrl.map(({ scriptEvaluation }) => scriptEvaluation)),
+          // paintCompositeRender: median(sameUrl.map(({ paintCompositeRender }) => paintCompositeRender)),
+          // styleLayout: median(sameUrl.map(({ styleLayout }) => styleLayout)),
+          // other: median(sameUrl.map(({ other }) => other)),
+          // parseHTML: median(sameUrl.map(({ parseHTML }) => parseHTML)),
+          // scriptParseCompile: median(sameUrl.map(({ scriptParseCompile }) => scriptParseCompile)),
+          // garbageCollection: median(sameUrl.map(({ garbageCollection }) => garbageCollection)),
           pageSize: median(sameUrl.map(({ pageSize }) => pageSize)),
           date: moment().format('YYYY-MM-DD HH:mm'),
         };
