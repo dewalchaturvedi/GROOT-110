@@ -71,15 +71,15 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function PersistentDrawerLeft(props) {
     let {fire = {}} = props;
-    let firestore = getFirestore();
-    var dbCollection = collection(firestore,"/psi-99");
+    // let firestore = getFirestore();
+    // var dbCollection = collection(firestore,"/psi-99");
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const [showHome, setShowHome] = React.useState(true);
 
     const handleDrawerOpen = () => {
         setOpen(true);
-        addRow(dbCollection,{"cls":0.01,"page_score":'76'})
+        // addRow(dbCollection,{"cls":0.01,"page_score":'76'})
     };
 
     const handleDrawerClose = () => {

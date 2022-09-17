@@ -5,6 +5,9 @@ import { median } from "./medianMath";
 import { apiRequest } from "./psi-api-request";
 import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 import sleep from "./sleep";
+import { addRow } from "./firebaseUtils";
+import { collection, getFirestore } from 'firebase/firestore';
+
 
 const getSpeedData = async ({
   iterationNum = 20,
@@ -23,6 +26,8 @@ const getSpeedData = async ({
   const resultObj = { mobile: {}, desktop: {} };
   const urlList = urlListCSV.split(",");
   const reqCountPerUrl = iterationNum * _round;
+  let firestore = getFirestore();
+  let dbCollection = collection(firestore,"/psi-99");
   // const totalReqCount = urlList.length * reqCountPerUrl;
   // const totalSuccessReq = 0;
 
@@ -305,7 +310,7 @@ const getSpeedData = async ({
             ...prevMobileTestScores,
             ...filteredResults,
           ]);
-          // console.log([...filteredResults]);
+          //console.log([...filteredResults]);
         }
         if (device === "desktop") {
           setDesktopTestScores((prevDesktopTestScores) => [
@@ -314,6 +319,9 @@ const getSpeedData = async ({
           ]);
           // console.log("filter", [...filteredResults]);
         }
+        filteredResults.map(row=>{
+          row && addRow(dbCollection,row);
+        });
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully fetched scores for ${filteredResults.length} ${device} URLs`, type: 'success'}))
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
