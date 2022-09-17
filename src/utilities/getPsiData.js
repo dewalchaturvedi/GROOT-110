@@ -326,9 +326,6 @@ const getSpeedData = async ({
           ]);
           // console.log("filter", [...filteredResults]);
         }
-        filteredResults.map(row=>{
-          row && addRow(dbCollection,row);
-        });
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully fetched scores for ${filteredResults.length} ${device} URLs`, type: 'success'}))
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
@@ -439,6 +436,9 @@ const getSpeedData = async ({
       if (device === "desktop") {
         setDesktopMedianScores([...labMedian]);
       }
+      labMedian.map(row=>{
+        row && addRow(dbCollection,row);
+      });
       setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully calculated ${device} median scores.`, type: 'success'}))
     }
   });
