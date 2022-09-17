@@ -6,6 +6,7 @@ import CustomizedTables from '../Table';
 import getSpeedData from '../../utilities/getPsiData';
 import PersistentDrawerLeft from '../Drawer';
 import Filter from '../Selector/Filter';
+import ToastMessage from '../ToastMessage';
 
 const textContainerStyle = {
     width: '70%',
@@ -23,6 +24,15 @@ const PerformanceCalculator = props => {
     const [desktopTestScores, setDesktopTestScores] = useState([]);
     const [mobileMedianScores, setMobileMedianScores] = useState([]);
     const [desktopMedianScores, setDesktopMedianScores] = useState([]);
+    const [snackBar, setSnackBar] = useState({
+        open: false,
+        message: "",
+        type: "info",
+    });      
+
+    const handleClose = () => {
+        setSnackBar(snackBar => ({ ...snackBar, open: false, message: '' }));
+    };
 
     const [buildRunning, setBuildRunning] = useState(false);
     const [filter, setFilter] = useState("tests");
@@ -36,7 +46,7 @@ const PerformanceCalculator = props => {
     // }, []);
     // console.log(psiConfig)
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores });
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar });
         setBuildRunning(true);
     };
 
@@ -60,6 +70,12 @@ const PerformanceCalculator = props => {
                 <div style={{ margin: 20 }}>
                     <Button variant="contained" onClick={triggerBuild} >Build</Button>
                 </div>
+                <ToastMessage
+                    open={snackBar.open}
+                    message={snackBar.message}
+                    type={snackBar.type}
+                    handleClose={handleClose}
+                />
                 {buildRunning ? <div style={{ marginBottom: 50 }}>
                     {psiConfig.platform === 'desktop,mobile' ?
                         <div>

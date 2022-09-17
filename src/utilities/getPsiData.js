@@ -15,6 +15,7 @@ const getSpeedData = async ({
   setDesktopTestScores,
   setMobileMedianScores,
   setDesktopMedianScores,
+  setSnackBar,
 }) => {
   const _round = Number.parseInt(round, 10);
   const devices = device.split(",");
@@ -30,6 +31,9 @@ const getSpeedData = async ({
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
   devices.forEach(async (device) => {
+
+    setSnackBar((snackBar) => ({...snackBar, open: true, message: `Fetching scores for ${urlList.length} URLs, ${_round} rounds of ${iterationNum} iterations for ${device}`, type: 'info'}))
+
     let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
 
     const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
@@ -76,11 +80,13 @@ const getSpeedData = async ({
     while (allReqUrls.length) {
       if (retryCount !== 0) {
         console.log(`Retrying ${allReqUrls.length} urls`);
+        setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retrying ${allReqUrls.length} urls`, type: 'info'}))
       }
       if (retryCount > retryCountMax) {
         console.log(
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
+        setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retry count reached 10. I am tired, let me rest for a bit.`, type: 'warning'}))
         break;
       }
       retryCount += 1;
@@ -280,6 +286,7 @@ const getSpeedData = async ({
 
         if (queriesPerMinuteLimitReached) {
           console.log("That's too much work in a minute, lets take a break.");
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a minute, lets take a break.`, type: 'warning'}))
           // console.log('Reached Queries per minute limit, waiting for 1 minute');
           await sleep(60000);
         }
@@ -288,6 +295,7 @@ const getSpeedData = async ({
           console.log(
             "That's too much work in a day, lets wrap up for the day."
           );
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a day, lets wrap up for the day.`, type: 'warning'}))
           await sleep(60000 * 60 * 24);
         }
 
@@ -297,15 +305,16 @@ const getSpeedData = async ({
             ...prevMobileTestScores,
             ...filteredResults,
           ]);
-          console.log([...filteredResults]);
+          // console.log([...filteredResults]);
         }
         if (device === "desktop") {
           setDesktopTestScores((prevDesktopTestScores) => [
             ...prevDesktopTestScores,
             ...filteredResults,
           ]);
-          console.log("filter", [...filteredResults]);
+          // console.log("filter", [...filteredResults]);
         }
+        setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully fetched scores for ${filteredResults.length} ${device} URLs`, type: 'success'}))
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
         // }
@@ -415,6 +424,7 @@ const getSpeedData = async ({
       if (device === "desktop") {
         setDesktopMedianScores([...labMedian]);
       }
+      setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully calculated ${device} median scores.`, type: 'success'}))
     }
   });
 
