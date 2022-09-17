@@ -7,6 +7,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { Skeleton } from '@mui/material';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -32,41 +33,72 @@ function createData(name, calories, fat, carbs, protein) {
     return { name, calories, fat, carbs, protein };
 }
 
-const rows = [
-    createData('Frozen yoghurt', 159, 6.0, 24, 4.0),
-    createData('Ice cream sandwich', 237, 9.0, 37, 4.3),
-    createData('Eclair', 262, 16.0, 24, 6.0),
-    createData('Cupcake', 305, 3.7, 67, 4.3),
-    createData('Gingerbread', 356, 16.0, 49, 3.9),
-];
+export default function CustomizedTables(props) {
 
-export default function CustomizedTables() {
+
+
+    const rows = [
+        props.testScores.map(item => {
+            createData(item.testUrl, item.PerformanceScore, item.labCLS, item.TBT, item.labLCP, item.labFCP, item.TTFB, item.TTI, item.pageSize, item.labMaxFID, item.speedIndex, item.date)
+        })
+    ];
+
+    // console.log("PROPS --> ", rows)
+
     return (
-        <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 700 }} aria-label="customized table">
-                <TableHead>
-                    <TableRow>
-                        <StyledTableCell>Dessert (100g serving)</StyledTableCell>
-                        <StyledTableCell align="right">Calories</StyledTableCell>
-                        <StyledTableCell align="right">Fat&nbsp;(g)</StyledTableCell>
-                        <StyledTableCell align="right">Carbs&nbsp;(g)</StyledTableCell>
-                        <StyledTableCell align="right">Protein&nbsp;(g)</StyledTableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {rows.map((row) => (
-                        <StyledTableRow key={row.name}>
-                            <StyledTableCell component="th" scope="row">
-                                {row.name}
-                            </StyledTableCell>
-                            <StyledTableCell align="right">{row.calories}</StyledTableCell>
-                            <StyledTableCell align="right">{row.fat}</StyledTableCell>
-                            <StyledTableCell align="right">{row.carbs}</StyledTableCell>
-                            <StyledTableCell align="right">{row.protein}</StyledTableCell>
-                        </StyledTableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <TableContainer sx={{ maxHeight: 440 }}>
+                <Table aria-label="sticky table" stickyHeader={true} >
+                    <TableHead>
+                        <TableRow>
+                            <StyledTableCell>URL</StyledTableCell>
+                            <StyledTableCell align="right">Page Score</StyledTableCell>
+                            <StyledTableCell align="right">CLS</StyledTableCell>
+                            <StyledTableCell align="right">TBT</StyledTableCell>
+                            <StyledTableCell align="right">LCP</StyledTableCell>
+                            <StyledTableCell align="right">FCP</StyledTableCell>
+                            <StyledTableCell align="right">TTFB</StyledTableCell>
+                            <StyledTableCell align="right">TTI</StyledTableCell>
+                            <StyledTableCell align="right">Page Size</StyledTableCell>
+                            <StyledTableCell align="right">FID</StyledTableCell>
+                            <StyledTableCell align="right">Speed Index</StyledTableCell>
+                            <StyledTableCell align="right">TimeStamp</StyledTableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {props.testScores.map((row) => (
+                            <StyledTableRow key={row.name}>
+                                <StyledTableCell component="th" scope="row">{row.testUrl}</StyledTableCell>
+                                <StyledTableCell align="right">{row.PerformanceScore}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labCLS}</StyledTableCell>
+                                <StyledTableCell align="right">{row.TBT}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labLCP}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labFCP}</StyledTableCell>
+                                <StyledTableCell align="right">{row.TTFB}</StyledTableCell>
+                                <StyledTableCell align="right">{row.TTI}</StyledTableCell>
+                                <StyledTableCell align="right">{row.pageSize}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labMaxFID}</StyledTableCell>
+                                <StyledTableCell align="right">{row.speedIndex}</StyledTableCell>
+                                <StyledTableCell align="right">{row.date}</StyledTableCell>
+                            </StyledTableRow>
+                        ))}
+                        {!props.hideShimmer && <StyledTableRow>
+                            <StyledTableCell component="th" scope="row">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                        </StyledTableRow>}
+                    </TableBody>
+                </Table>
+            </TableContainer >
+        </Paper>
     );
 }

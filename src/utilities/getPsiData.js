@@ -7,7 +7,7 @@ import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 import sleep from "./sleep";
 
 const getSpeedData = async ({
-  iterationNum = 20,
+  iterationNum = 2,
   urlListCSV = "",
   round = "1",
   device = "mobile", // desktop
@@ -76,7 +76,7 @@ const getSpeedData = async ({
       if (retryCount !== 0) {
         console.log(`Retrying ${allReqUrls.length} urls`);
       }
-      if (retryCount > 10) {
+      if (retryCount > 1) {
         console.log(
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
@@ -241,7 +241,7 @@ const getSpeedData = async ({
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
               res.reason.response?.data.error.message ??
-                `Connection error: ${res.reason.message}`
+              `Connection error: ${res.reason.message}`
             );
 
             if (
@@ -284,11 +284,14 @@ const getSpeedData = async ({
           await sleep(60000 * 60 * 24);
         }
 
-        if (device === 'mobile ') {
-          setMobileTestScores(prevMobileTestScores => [...prevMobileTestScores, ...results]);
+        const filteredResults = results.filter((obj) => obj !== undefined);
+        if (device === 'mobile') {
+          setMobileTestScores(prevMobileTestScores => ([...prevMobileTestScores, ...filteredResults]));
+          console.log([...filteredResults]);
         }
-        if (device === 'destkop ') {
-          setDesktopTestScores(prevDesktopTestScores => [...prevDesktopTestScores, ...results]);
+        if (device === 'desktop') {
+          setDesktopTestScores(prevDesktopTestScores => ([...prevDesktopTestScores, ...filteredResults]));
+          console.log("filter", [...filteredResults]);
         }
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
@@ -393,10 +396,10 @@ const getSpeedData = async ({
       // );
       console.log("Median scores.......", labMedian);
       resultObj[device].median = labMedian;
-      if (device === 'mobile ') {
+      if (device === 'mobile') {
         setMobileMedianScores([...labMedian]);
       }
-      if (device === 'destkop ') {
+      if (device === 'desktop') {
         setDesktopMedianScores([...labMedian]);
       }
     }
@@ -404,9 +407,8 @@ const getSpeedData = async ({
 
   // Log amount of errors
   console.log(
-    `Encountered ${
-      (resultObj.mobile.error?.length || 0) +
-      (resultObj.desktop.error?.length || 0)
+    `Encountered ${(resultObj.mobile.error?.length || 0) +
+    (resultObj.desktop.error?.length || 0)
     } errors running the tests`
   );
   // console.log(`Ran ${_round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
