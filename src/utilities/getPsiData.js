@@ -7,7 +7,7 @@ import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 import sleep from "./sleep";
 
 const getSpeedData = async ({
-  iterationNum = 2,
+  iterationNum = 20,
   urlListCSV = "",
   round = "1",
   device = "mobile", // desktop
@@ -45,6 +45,7 @@ const getSpeedData = async ({
     const fieldOriginRes = [];
     const fieldOriginDomain = new Set();
     let retryCount = 0;
+    const retryCountMax = 10;
     let queriesPerMinuteLimitReached = false;
     let queriesPerDayLimitReached = false;
 
@@ -76,7 +77,7 @@ const getSpeedData = async ({
       if (retryCount !== 0) {
         console.log(`Retrying ${allReqUrls.length} urls`);
       }
-      if (retryCount > 1) {
+      if (retryCount > retryCountMax) {
         console.log(
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
@@ -236,12 +237,12 @@ const getSpeedData = async ({
             };
             return finalObj;
           } else {
-            retryList.push(chunk[index]);
+            tempRetryList.push(chunk[index]);
             console.log("rejected 0 ", chunk[index], res);
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
               res.reason.response?.data.error.message ??
-              `Connection error: ${res.reason.message}`
+                `Connection error: ${res.reason.message}`
             );
 
             if (
@@ -253,6 +254,12 @@ const getSpeedData = async ({
               queriesPerDayLimitReached = true;
             }
             if (
+              res.reason.response?.data.error.message.includes(
+                "Please wait a while and try again"
+              ) ||
+              res.reason.message.includes(
+                "Please wait a while and try again"
+              ) ||
               res.reason.response?.data.error.message.includes(
                 "Queries per minute"
               ) ||
@@ -285,12 +292,18 @@ const getSpeedData = async ({
         }
 
         const filteredResults = results.filter((obj) => obj !== undefined);
-        if (device === 'mobile') {
-          setMobileTestScores(prevMobileTestScores => ([...prevMobileTestScores, ...filteredResults]));
+        if (device === "mobile") {
+          setMobileTestScores((prevMobileTestScores) => [
+            ...prevMobileTestScores,
+            ...filteredResults,
+          ]);
           console.log([...filteredResults]);
         }
-        if (device === 'desktop') {
-          setDesktopTestScores(prevDesktopTestScores => ([...prevDesktopTestScores, ...filteredResults]));
+        if (device === "desktop") {
+          setDesktopTestScores((prevDesktopTestScores) => [
+            ...prevDesktopTestScores,
+            ...filteredResults,
+          ]);
           console.log("filter", [...filteredResults]);
         }
         // Push spreaded results to labDataRes array
@@ -396,10 +409,10 @@ const getSpeedData = async ({
       // );
       console.log("Median scores.......", labMedian);
       resultObj[device].median = labMedian;
-      if (device === 'mobile') {
+      if (device === "mobile") {
         setMobileMedianScores([...labMedian]);
       }
-      if (device === 'desktop') {
+      if (device === "desktop") {
         setDesktopMedianScores([...labMedian]);
       }
     }
@@ -407,8 +420,9 @@ const getSpeedData = async ({
 
   // Log amount of errors
   console.log(
-    `Encountered ${(resultObj.mobile.error?.length || 0) +
-    (resultObj.desktop.error?.length || 0)
+    `Encountered ${
+      (resultObj.mobile.error?.length || 0) +
+      (resultObj.desktop.error?.length || 0)
     } errors running the tests`
   );
   // console.log(`Ran ${_round} round of ${iterationNum} for a total of ${urlList.length} URL/s`);
