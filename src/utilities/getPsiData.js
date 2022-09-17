@@ -20,6 +20,13 @@ const getSpeedData = async ({
   setDesktopMedianScores,
   setSnackBar,
 }) => {
+  setMobileTestScores([]);
+  setDesktopTestScores([]);
+  setMobileMedianScores([]);
+  setDesktopMedianScores([]);
+
+  const startDateTime = new Date();
+  const startTimeStamp = startDateTime.getTime();
   const _round = Number.parseInt(round, 10);
   const devices = device.split(",");
   // Get URL List
@@ -28,7 +35,7 @@ const getSpeedData = async ({
   const reqCountPerUrl = iterationNum * _round;
   let firestore = getFirestore();
   let dbCollection = collection(firestore,"/psi-99");
-  // const totalReqCount = urlList.length * reqCountPerUrl;
+  const totalReqCount = urlList.length * reqCountPerUrl;
   // const totalSuccessReq = 0;
 
   // const urlReqObj = {};
@@ -447,6 +454,12 @@ const getSpeedData = async ({
   console.timeEnd();
 
   console.log("Final resultObj", resultObj);
+
+
+  // const endDateTime = new Date();
+  // const endTimeStamp = endDateTime.getTime();
+  // const timeDelta = endTimeStamp - startTimeStamp;
+  // setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully calculated ${totalReqCount} URL scores in ${moment(timeDelta, "x").format("HH:mm:ss")}.`, type: 'success'}))
 
   return resultObj;
 };
