@@ -95,6 +95,7 @@ const getSpeedData = async ({
   let firestore = getFirestore();
   let dbCollection = collection(firestore,"/psi-99");
   const totalReqCount = urlList.length * reqCountPerUrl;
+  let stopExecution = false;
   // const totalSuccessReq = 0;
 
   // const urlReqObj = {};
@@ -102,6 +103,7 @@ const getSpeedData = async ({
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
   devices.forEach(async (device) => {
+    stopExecution = false;
 
     setSnackBar((snackBar) => ({...snackBar, open: true, message: `Fetching scores for ${urlList.length} URLs, ${_round} rounds of ${iterationNum} iterations for ${device}`, type: 'info'}))
 
@@ -158,6 +160,10 @@ const getSpeedData = async ({
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retry count reached 10. I am tired, let me rest for a bit.`, type: 'warning'}))
+        stopExecution = true;
+        break;
+      }
+      if (stopExecution) {
         break;
       }
       retryCount += 1;
@@ -167,6 +173,10 @@ const getSpeedData = async ({
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        if (stopExecution) {
+          break;
+        }
+ 
         // Iterate through list of URLs within chunk
         // for (let _round = 0; _round < iterationNum; _round++) {
         // Log _round of testing
@@ -314,7 +324,14 @@ const getSpeedData = async ({
             };
             return finalObj;
           } else {
-            tempRetryList.push(chunk[index]);
+            if (res.reason.response?.data.error.message.includes('API key not valid. Please pass a valid API key.') ||
+            res.reason.message.includes('API key not valid. Please pass a valid API key.')) {
+              setSnackBar((snackBar) => ({...snackBar, open: true, message: `API key not valid. Please pass a valid API key.`, type: 'error'}));
+              stopExecution = true;
+            } else {
+              tempRetryList.push(chunk[index]);
+            }
+            
             console.log("rejected 0 ", chunk[index], res);
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
@@ -370,6 +387,10 @@ const getSpeedData = async ({
           await sleep(60000 * 60 * 24);
         }
 
+        if (stopExecution) {
+          break;
+        }
+
         const filteredResults = results.filter((obj) => obj !== undefined);
         if (device === "mobile") {
           setMobileTestScores((prevMobileTestScores) => [
@@ -393,6 +414,9 @@ const getSpeedData = async ({
       allReqUrls = tempRetryList;
     }
 
+    if (stopExecution) {
+      return;
+    }
     // If there if there is field data
     if (fieldDataRes.length > 0) {
       // Write field data results into CSV
