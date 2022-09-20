@@ -21,6 +21,7 @@ const Filter = props => {
             >
                 <MenuItem value={"tests"} onChange={handleChange}>Test Scores</MenuItem>
                 <MenuItem value={"median"} onChange={handleChange}>Median Score</MenuItem>
+                <MenuItem value={"average"} onChange={handleChange}>Average Score</MenuItem>
             </Select>
         </FormControl>
     );

@@ -26,6 +26,9 @@ const PerformanceCalculator = props => {
     const [desktopTestScores, setDesktopTestScores] = useState([]);
     const [mobileMedianScores, setMobileMedianScores] = useState([]);
     const [desktopMedianScores, setDesktopMedianScores] = useState([]);
+    const [mobileAverageScores, setMobileAverageScores] = useState([]);
+    const [desktopAverageScores, setDesktopAverageScores] = useState([]);
+
     const [snackBar, setSnackBar] = useState({
         open: false,
         message: "",
@@ -48,7 +51,7 @@ const PerformanceCalculator = props => {
     // }, []);
     // console.log(psiConfig)
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey});
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores});
         setBuildRunning(true);
     };
 
@@ -75,7 +78,7 @@ const PerformanceCalculator = props => {
                     <Selector handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
-                    <Button disabled={psiConfig.apiKey ? false : true}variant="contained" onClick={triggerBuild} >Build</Button>
+                    <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey}  >Build</Button>
                 </div>
                 <ToastMessage
                     open={snackBar.open}
@@ -107,7 +110,7 @@ const PerformanceCalculator = props => {
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
-                            <CustomizedTables hideShimmer={filter === 'median' || (psiConfig.platform === 'mobile' ? mobileMedianScores.length > 0 : desktopMedianScores.length > 0)} testScores={psiConfig.platform === 'mobile' ? (filter === 'tests' ? mobileTestScores : mobileMedianScores) : (filter === 'tests' ? desktopTestScores : desktopMedianScores)} />
+                            <CustomizedTables hideShimmer={filter === 'median' || (psiConfig.platform === 'mobile' ? mobileMedianScores.length > 0 : desktopMedianScores.length > 0)} testScores={psiConfig.platform === 'mobile' ? (filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
                         </div>
                     }
                 </div> : null}
