@@ -19,9 +19,8 @@ const PerformanceCalculator = props => {
         platform: 'desktop,mobile',
         urlListCSV: '',
         apiKey: '',
-        
     });
-
+    const [isShimmer, setShimmer] = useState({ mobile: true, desktop: true })
     const [mobileTestScores, setMobileTestScores] = useState([]);
     const [desktopTestScores, setDesktopTestScores] = useState([]);
     const [mobileMedianScores, setMobileMedianScores] = useState([]);
@@ -33,7 +32,7 @@ const PerformanceCalculator = props => {
         open: false,
         message: "",
         type: "info",
-    });      
+    });
 
     const handleClose = () => {
         setSnackBar(snackBar => ({ ...snackBar, open: false, message: '' }));
@@ -46,26 +45,32 @@ const PerformanceCalculator = props => {
         setPsiConfig({ ...psiConfig, [e.target.id ? e.target.id : e.target.name]: e.target.value })
     }
 
-    // useEffect(() => {
-    //     getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores });
-    // }, []);
-    // console.log(psiConfig)
+    useEffect(() => {
+        hideShimmer();
+    }, [mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores});
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores });
         setBuildRunning(true);
     };
 
-    console.log("median", mobileMedianScores, desktopMedianScores);
-
+    const hideShimmer = () => {
+        if (psiConfig.platform === 'desktop,mobile') {
+            setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0, desktop: !desktopMedianScores.length > 0 })
+        } else if (psiConfig.platform === 'desktop') {
+            setShimmer({ ...isShimmer, desktop: !desktopMedianScores.length > 0 })
+        } else if (psiConfig.platform === 'mobile') {
+            return setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0 })
+        }
+    }
     return (
         <div>
             <Container>
                 <h1>Page Speed Calculator</h1>
                 <h4>Please enter the following data to initiate build</h4>
                 <div>
-                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && <span>Create your own <a style={{textDecoration:"none",color:"cornflowerblue"}}target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey" 
-                    label= {"Enter your google cloud API key here"} 
-                    variant="standard" style={textContainerStyle} onChange={handleChange} />
+                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey"
+                        label={"Enter your google cloud API key here"}
+                        variant="standard" style={textContainerStyle} onChange={handleChange} />
                 </div>
                 <div>
                     <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleChange} />
@@ -94,14 +99,14 @@ const PerformanceCalculator = props => {
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter === 'tests' ? mobileTestScores : mobileMedianScores} />
+                                <CustomizedTables testScores={filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} hideShimmer={isShimmer.mobile} />
                             </div>
                             <div>
                                 <h4 style={{ marginLeft: '45%' }}>PSI Results : Desktop</h4>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter === 'tests' ? desktopTestScores : desktopMedianScores} />
+                                <CustomizedTables testScores={filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} hideShimmer={isShimmer.desktop} />
                             </div>
                         </div>
                         :
@@ -110,7 +115,7 @@ const PerformanceCalculator = props => {
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
-                            <CustomizedTables hideShimmer={filter === 'median' || (psiConfig.platform === 'mobile' ? mobileMedianScores.length > 0 : desktopMedianScores.length > 0)} testScores={psiConfig.platform === 'mobile' ? (filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
+                            <CustomizedTables hideShimmer={psiConfig.platform === 'mobile' ? isShimmer.mobile : isShimmer.desktop} testScores={psiConfig.platform === 'mobile' ? (filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
                         </div>
                     }
                 </div> : null}
@@ -120,3 +125,9 @@ const PerformanceCalculator = props => {
 }
 
 export default PerformanceCalculator;
+
+
+
+
+//             if (mobileMedianScores.length > 0) setShimmer({ ...isShimmer, mobile: false })
+//             else if (desktopMedianScores.length > 0) setShimmer({ ...isShimmer, desktop: false })

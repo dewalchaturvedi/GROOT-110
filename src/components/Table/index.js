@@ -42,9 +42,6 @@ export default function CustomizedTables(props) {
             createData(item.testUrl, item.PerformanceScore, item.labCLS, item.TBT, item.labLCP, item.labFCP, item.TTFB, item.TTI, item.pageSize, item.labMaxFID, item.speedIndex, item.date)
         })
     ];
-
-    // console.log("PROPS --> ", rows)
-
     return (
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
             <TableContainer sx={{ maxHeight: 440 }}>
@@ -82,7 +79,7 @@ export default function CustomizedTables(props) {
                                 <StyledTableCell align="right">{row.date}</StyledTableCell>
                             </StyledTableRow>
                         ))}
-                        {!props.hideShimmer && <StyledTableRow>
+                        {props.hideShimmer && <StyledTableRow>
                             <StyledTableCell component="th" scope="row">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
