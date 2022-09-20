@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { styled, useTheme } from '@mui/material/styles';
+import { Overlay } from '../Overlay/Overlay';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -24,6 +25,14 @@ import { addRow } from '../../utilities/firebaseUtils';
 import { collection, getFirestore } from 'firebase/firestore';
 
 const drawerWidth = 240;
+// const ModalContainer = StyledComponent.div`
+// position: absolute;
+// top: 0;
+// left: 0;
+// width: 100%;
+// height: 100%;
+// background: rgba(0, 0, 0, 0.91)
+// `;
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
     ({ theme, open }) => ({
         flexGrow: 1,
@@ -144,9 +153,16 @@ export default function PersistentDrawerLeft(props) {
                 <Divider />
             </Drawer>
             <Main open={open}>
+            {/* {!showHome && <h1 style={{zIndex:'10',position:'absolute',top:'100px',left:'50px'}}>Under Construction</h1>} */}
+            {!showHome && <Overlay/>}
+
                 <DrawerHeader />
                 {showHome ? <PerformanceCalculator /> : <Insights />}
             </Main>
+            {/* <p className={"footer-heart"}>
+  Made with <g-emoji className="g-emoji" alias="heart" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png">
+<img className="emoji" alt="heart" height="20" width="20" src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png"/></g-emoji> by <a href="https://armin.id">Arminisme</a>
+</p> */}
         </Box>
     );
 }
