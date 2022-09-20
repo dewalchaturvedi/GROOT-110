@@ -17,7 +17,9 @@ const PerformanceCalculator = props => {
     const [psiConfig, setPsiConfig] = useState({
         numberOfRounds: 3,
         platform: 'desktop,mobile',
-        urlListCSV: ''
+        urlListCSV: '',
+        apiKey: '',
+        
     });
 
     const [mobileTestScores, setMobileTestScores] = useState([]);
@@ -46,7 +48,7 @@ const PerformanceCalculator = props => {
     // }, []);
     // console.log(psiConfig)
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar });
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey});
         setBuildRunning(true);
     };
 
@@ -58,6 +60,9 @@ const PerformanceCalculator = props => {
                 <h1>Page Speed Calculator</h1>
                 <h4>Please enter the following fields to initiate build:</h4>
                 <div>
+                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && "Please enter valid API key"} required id="apiKey" label="Enter API key from your GCP console." variant="standard" style={textContainerStyle} onChange={handleChange} />
+                </div>
+                <div>
                     <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleChange} />
                 </div>
                 <div>
@@ -68,7 +73,7 @@ const PerformanceCalculator = props => {
                     <Selector handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
-                    <Button variant="contained" onClick={triggerBuild} >Build</Button>
+                    <Button disabled={psiConfig.apiKey ? false : true}variant="contained" onClick={triggerBuild} >Build</Button>
                 </div>
                 <ToastMessage
                     open={snackBar.open}

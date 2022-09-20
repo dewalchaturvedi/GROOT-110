@@ -6,4 +6,4 @@ export const uniquePsiDummyString = 'tempPsiId';
 export const ENDPOINT =
   "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed"; // Endpoint
 
-export const KEY = "AIzaSyAR8Nrp-NcxNq5ON5NqDiLFJyRGkzsWNDk"; // API Key (https://developers.google.com/speed/docs/insights/v5/get-started)
+export const KEY = ""; // API Key (https://developers.google.com/speed/docs/insights/v5/get-started)

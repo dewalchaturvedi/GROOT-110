@@ -106,7 +106,7 @@ export default function PersistentDrawerLeft(props) {
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" noWrap component="div">
-                        Page Trends
+                    IPS: InfoEdge Performance Suite
                     </Typography>
                 </Toolbar>
             </AppBar>

@@ -19,6 +19,7 @@ const getSpeedData = async ({
   setMobileMedianScores,
   setDesktopMedianScores,
   setSnackBar,
+  apiKey=''
 }) => {
   setMobileTestScores([]);
   setDesktopTestScores([]);
@@ -115,7 +116,7 @@ const getSpeedData = async ({
 
         // console.log('chunk ================== \n', chunk);
         // Loop trough array to create batch of promises (array)
-        const promises = chunk.map((testUrl) => apiRequest(testUrl, device));
+        const promises = chunk.map((testUrl) => apiRequest(testUrl, device, apiKey));
 
         // console.log('chunk ', chunk);
 
