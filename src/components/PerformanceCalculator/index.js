@@ -58,9 +58,11 @@ const PerformanceCalculator = props => {
         <div>
             <Container>
                 <h1>Page Speed Calculator</h1>
-                <h4>Please enter the following fields to initiate build:</h4>
+                <h4>Please enter the following data to initiate build</h4>
                 <div>
-                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && "Please enter valid API key"} required id="apiKey" label="Enter API key from your GCP console." variant="standard" style={textContainerStyle} onChange={handleChange} />
+                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && <span>Create your own <a style={{textDecoration:"none",color:"cornflowerblue"}}target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey" 
+                    label= {"Enter your google cloud API key here"} 
+                    variant="standard" style={textContainerStyle} onChange={handleChange} />
                 </div>
                 <div>
                     <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleChange} />
