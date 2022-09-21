@@ -5,7 +5,7 @@ import { LineChart } from "../LineChart";
 const Insights = props => {
     return (
         <div>
-            <Container>
+            <Container style={{maxHeight:'400px',overflow:'hidden'}}>
                 <h1>Insights</h1>
                 <LineChart />
             </Container>
