@@ -85,7 +85,19 @@ export default function PersistentDrawerLeft(props) {
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const [showHome, setShowHome] = React.useState(true);
-
+    const [activeScreen, setActiveScreen] = React.useState('Home'); 
+    const navItems = {
+        'Home':{
+            name:'Home',
+            icon:<HomeIcon/>,
+            component:<PerformanceCalculator/>,
+        },
+        'Insights':{
+            name:'Insights',
+            icon:<InsightsIcon/>,
+            component:<Insights/>
+        },
+    }
     const handleDrawerOpen = () => {
         setOpen(true);
         // addRow(dbCollection,{"cls":0.01,"page_score":'76'})
@@ -95,11 +107,11 @@ export default function PersistentDrawerLeft(props) {
         setOpen(false);
     };
 
-    const navButtonClickHandler = () => {
+    const navButtonClickHandler = (item) => {
         setOpen(false);
-        setShowHome(!showHome);
+        setActiveScreen(item);
     }
-
+    let activeComponent = navItems[activeScreen].component;
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
@@ -139,13 +151,13 @@ export default function PersistentDrawerLeft(props) {
                 </DrawerHeader>
                 <Divider />
                 <List>
-                    {['Home', 'Insights'].map((text, index) => (
-                        <ListItem key={text} disablePadding >
-                            <ListItemButton onClick={navButtonClickHandler} >
+                    {(Object.keys(navItems)).map((item, index) => (
+                        <ListItem key={index} disablePadding >
+                            <ListItemButton onClick={()=>navButtonClickHandler(navItems[item].name)} >
                                 <ListItemIcon>
-                                    {index % 2 === 0 ? <HomeIcon /> : <InsightsIcon />}
+                                    {navItems[item].icon}
                                 </ListItemIcon>
-                                <ListItemText primary={text} />
+                                <ListItemText primary={navItems[item].name} />
                             </ListItemButton>
                         </ListItem>
                     ))}
@@ -157,7 +169,7 @@ export default function PersistentDrawerLeft(props) {
             {!showHome && <Overlay/>}
 
                 <DrawerHeader />
-                {showHome ? <PerformanceCalculator /> : <Insights />}
+                {activeComponent}
             </Main>
             {/* <p className={"footer-heart"}>
   Made with <g-emoji className="g-emoji" alias="heart" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png">
