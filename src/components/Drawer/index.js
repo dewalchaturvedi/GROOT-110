@@ -166,7 +166,7 @@ export default function PersistentDrawerLeft(props) {
             </Drawer>
             <Main open={open}>
             {/* {!showHome && <h1 style={{zIndex:'10',position:'absolute',top:'100px',left:'50px'}}>Under Construction</h1>} */}
-            {!showHome && <Overlay/>}
+            {activeScreen == 'Insights' && <Overlay/>}
 
                 <DrawerHeader />
                 {activeComponent}
