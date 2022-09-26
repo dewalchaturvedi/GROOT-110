@@ -1,5 +1,5 @@
 import { React, useEffect, useState } from 'react';
-import { Button, TextField } from '@mui/material';
+import { Button, Grid, TextField } from '@mui/material';
 import Selector from '../Selector';
 import { Container } from '@mui/system';
 import CustomizedTables from '../Table';
@@ -7,6 +7,7 @@ import getSpeedData from '../../utilities/getPsiData';
 import PersistentDrawerLeft from '../Drawer';
 import Filter from '../Selector/Filter';
 import ToastMessage from '../ToastMessage';
+import LinearProgressWithLabel from '../LinearProgressWithLabel';
 
 const textContainerStyle = {
     width: '70%',
@@ -28,6 +29,11 @@ const PerformanceCalculator = props => {
     const [mobileAverageScores, setMobileAverageScores] = useState([]);
     const [desktopAverageScores, setDesktopAverageScores] = useState([]);
 
+    const [successCount, setSuccessCount] = useState(0);
+    const [errorCount, setErrorCount] = useState(0);
+    const [totalUrlCount, setTotalUrlCount] = useState(0);
+    const [progress, setProgress] = useState(0);
+    
     const [snackBar, setSnackBar] = useState({
         open: false,
         message: "",
@@ -49,7 +55,7 @@ const PerformanceCalculator = props => {
         hideShimmer();
     }, [mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores });
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress });
         setBuildRunning(true);
     };
 
@@ -66,7 +72,7 @@ const PerformanceCalculator = props => {
         <div>
             <Container>
                 <h1>Page Speed Calculator</h1>
-                <h4>Please enter the following data to initiate build</h4>
+                <p>Please enter the following data to initiate build</p>
                 <div>
                     <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey"
                         label={"Your API Key"}
@@ -83,7 +89,16 @@ const PerformanceCalculator = props => {
                     <Selector handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
-                    <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey}  >Build</Button>
+                    <Grid container spacing={2}>
+                        <Grid item xs={2}>
+                        <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey}  >Build</Button>
+                        </Grid>
+                        {buildRunning && <>
+                            <Grid item xs={3}><p>Total: {totalUrlCount}</p></Grid>
+                            <Grid item xs={3}><p>Success: {successCount}</p></Grid>
+                            <Grid item xs={3}><p>Errors: {errorCount}</p></Grid>
+                        </>}
+                    </Grid>
                 </div>
                 <ToastMessage
                     open={snackBar.open}
@@ -92,17 +107,18 @@ const PerformanceCalculator = props => {
                     handleClose={handleClose}
                 />
                 {buildRunning ? <div style={{ marginBottom: 50 }}>
+                    <LinearProgressWithLabel value={progress} />
                     {psiConfig.platform === 'desktop,mobile' ?
                         <div>
                             <div style={{ marginBottom: 80 }}>
-                                <h4 style={{ marginLeft: '45%' }}>PSI Results : Mobile-Site</h4>
+                                <p style={{ marginLeft: '45%' }}>PSI Results : Mobile-Site</p>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
                                 <CustomizedTables testScores={filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} hideShimmer={isShimmer.mobile} />
                             </div>
                             <div>
-                                <h4 style={{ marginLeft: '45%' }}>PSI Results : Desktop</h4>
+                                <p style={{ marginLeft: '45%' }}>PSI Results : Desktop</p>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
@@ -111,7 +127,7 @@ const PerformanceCalculator = props => {
                         </div>
                         :
                         <div>
-                            <h4 style={{ marginLeft: '45%' }}>PSI Results</h4>
+                            <p style={{ marginLeft: '45%' }}>PSI Results</p>
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
