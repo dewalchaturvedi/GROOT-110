@@ -2,9 +2,66 @@ import moment from "moment/moment";
 import { MAX_PARALLEL_REQ_COUNT } from "../constants/universal";
 import { chunkArray } from "./chunkArray";
 import { median } from "./medianMath";
+import calcAverage from './calcAverage';
 import { apiRequest } from "./psi-api-request";
 import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 import sleep from "./sleep";
+import { addRow } from "./firebaseUtils";
+import { collection, getFirestore } from 'firebase/firestore';
+
+
+// Reduce labDataRes array to calcualte median/average for the same URLs in array
+function reduceResults(calculatorFn, resArray, iterationNum) {
+  // Collect analysed URLs in set
+  const seen = new Set();
+  
+  const calculatedMetrices = resArray.reduce((acc, cur, index, labArray) => {
+    if (!seen.has(cur.testUrl)) {
+      // Add URL to seen list
+      seen.add(cur.testUrl);
+
+      // Filter same URLs from results
+      const sameUrl = labArray.filter((obj) => obj.testUrl === cur.testUrl);
+      const sameUrlRoundChunks = chunkArray(sameUrl, iterationNum);
+
+      sameUrlRoundChunks.forEach((sameUrlRoundChunk) => {
+        // Create object with the same properties but calculating the median/average value per url per round
+        const calculatedObj = {
+          testUrl: cur.testUrl,
+          PerformanceScore: calculatorFn(
+            sameUrlRoundChunk.map(({ PerformanceScore }) => PerformanceScore)
+          ),
+          TTFB: calculatorFn(sameUrlRoundChunk.map(({ TTFB }) => TTFB)),
+          labFCP: calculatorFn(sameUrlRoundChunk.map(({ labFCP }) => labFCP)),
+          labLCP: calculatorFn(sameUrlRoundChunk.map(({ labLCP }) => labLCP)),
+          labCLS: calculatorFn(sameUrlRoundChunk.map(({ labCLS }) => labCLS)),
+          TTI: calculatorFn(sameUrlRoundChunk.map(({ TTI }) => TTI)),
+          speedIndex: calculatorFn(sameUrlRoundChunk.map(({ speedIndex }) => speedIndex)),
+          TBT: calculatorFn(sameUrlRoundChunk.map(({ TBT }) => TBT)),
+          // thirdPartySummary: calculatorFn(sameUrlRoundChunk.map(({ thirdPartySummary }) => thirdPartySummary)),
+          labMaxFID: calculatorFn(sameUrlRoundChunk.map(({ labMaxFID }) => labMaxFID)),
+          // mainThread: calculatorFn(sameUrlRoundChunk.map(({ mainThread }) => mainThread)),
+          // scriptEvaluation: calculatorFn(sameUrlRoundChunk.map(({ scriptEvaluation }) => scriptEvaluation)),
+          // paintCompositeRender: calculatorFn(sameUrlRoundChunk.map(({ paintCompositeRender }) => paintCompositeRender)),
+          // styleLayout: calculatorFn(sameUrlRoundChunk.map(({ styleLayout }) => styleLayout)),
+          // other: calculatorFn(sameUrlRoundChunk.map(({ other }) => other)),
+          // parseHTML: calculatorFn(sameUrlRoundChunk.map(({ parseHTML }) => parseHTML)),
+          // scriptParseCompile: calculatorFn(sameUrlRoundChunk.map(({ scriptParseCompile }) => scriptParseCompile)),
+          // garbageCollection: calculatorFn(sameUrlRoundChunk.map(({ garbageCollection }) => garbageCollection)),
+          pageSize: calculatorFn(sameUrlRoundChunk.map(({ pageSize }) => pageSize)),
+          date: moment().format("YYYY-MM-DD HH:mm"),
+        };
+        
+        // Push to accumulator
+        acc.push(calculatedObj);
+      });
+    }
+
+    // Return accumulator
+    return acc;
+  }, []);
+  return calculatedMetrices;
+}
 
 const getSpeedData = async ({
   iterationNum = 20,
@@ -15,15 +72,30 @@ const getSpeedData = async ({
   setDesktopTestScores,
   setMobileMedianScores,
   setDesktopMedianScores,
+  setMobileAverageScores,
+  setDesktopAverageScores,
   setSnackBar,
+  apiKey=''
 }) => {
+  setMobileTestScores([]);
+  setDesktopTestScores([]);
+  setMobileMedianScores([]);
+  setDesktopMedianScores([]);
+  setMobileAverageScores([]);
+  setDesktopAverageScores([]);
+
+  const startDateTime = new Date();
+  const startTimeStamp = startDateTime.getTime();
   const _round = Number.parseInt(round, 10);
   const devices = device.split(",");
   // Get URL List
   const resultObj = { mobile: {}, desktop: {} };
   const urlList = urlListCSV.split(",");
   const reqCountPerUrl = iterationNum * _round;
-  // const totalReqCount = urlList.length * reqCountPerUrl;
+  let firestore = getFirestore();
+  let dbCollection = collection(firestore,"/psi-99");
+  const totalReqCount = urlList.length * reqCountPerUrl;
+  let stopExecution = false;
   // const totalSuccessReq = 0;
 
   // const urlReqObj = {};
@@ -31,6 +103,7 @@ const getSpeedData = async ({
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
   devices.forEach(async (device) => {
+    stopExecution = false;
 
     setSnackBar((snackBar) => ({...snackBar, open: true, message: `Fetching scores for ${urlList.length} URLs, ${_round} rounds of ${iterationNum} iterations for ${device}`, type: 'info'}))
 
@@ -87,6 +160,10 @@ const getSpeedData = async ({
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retry count reached 10. I am tired, let me rest for a bit.`, type: 'warning'}))
+        stopExecution = true;
+        break;
+      }
+      if (stopExecution) {
         break;
       }
       retryCount += 1;
@@ -96,6 +173,10 @@ const getSpeedData = async ({
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        if (stopExecution) {
+          break;
+        }
+ 
         // Iterate through list of URLs within chunk
         // for (let _round = 0; _round < iterationNum; _round++) {
         // Log _round of testing
@@ -103,7 +184,7 @@ const getSpeedData = async ({
 
         // console.log('chunk ================== \n', chunk);
         // Loop trough array to create batch of promises (array)
-        const promises = chunk.map((testUrl) => apiRequest(testUrl, device));
+        const promises = chunk.map((testUrl) => apiRequest(testUrl, device, apiKey));
 
         // console.log('chunk ', chunk);
 
@@ -181,7 +262,7 @@ const getSpeedData = async ({
               res.value.lighthouseResult.finalUrl
             );
             const PerformanceScore =
-              res.value.lighthouseResult.categories.performance.score ||
+              res.value.lighthouseResult.categories.performance.score * 100 ||
               "no data";
             const TTFB = labAudit["server-response-time"].numericValue;
             const TTI =
@@ -243,7 +324,14 @@ const getSpeedData = async ({
             };
             return finalObj;
           } else {
-            tempRetryList.push(chunk[index]);
+            if (res.reason.response?.data.error.message.includes('API key not valid. Please pass a valid API key.') ||
+            res.reason.message.includes('API key not valid. Please pass a valid API key.')) {
+              setSnackBar((snackBar) => ({...snackBar, open: true, message: `API key not valid. Please pass a valid API key.`, type: 'error'}));
+              stopExecution = true;
+            } else {
+              tempRetryList.push(chunk[index]);
+            }
+            
             console.log("rejected 0 ", chunk[index], res);
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
@@ -299,13 +387,17 @@ const getSpeedData = async ({
           await sleep(60000 * 60 * 24);
         }
 
+        if (stopExecution) {
+          break;
+        }
+
         const filteredResults = results.filter((obj) => obj !== undefined);
         if (device === "mobile") {
           setMobileTestScores((prevMobileTestScores) => [
             ...prevMobileTestScores,
             ...filteredResults,
           ]);
-          // console.log([...filteredResults]);
+          //console.log([...filteredResults]);
         }
         if (device === "desktop") {
           setDesktopTestScores((prevDesktopTestScores) => [
@@ -322,6 +414,9 @@ const getSpeedData = async ({
       allReqUrls = tempRetryList;
     }
 
+    if (stopExecution) {
+      return;
+    }
     // If there if there is field data
     if (fieldDataRes.length > 0) {
       // Write field data results into CSV
@@ -365,52 +460,8 @@ const getSpeedData = async ({
     if (iterationNum > 1) {
       console.log("Calculating median...");
 
-      // Collect analysed URLs in set
-      const seen = new Set();
-
-      // Reduce labDataRes array to calcualte median for the same URLs in array
-      const labMedian = labDataResFilter.reduce((acc, cur, index, labArray) => {
-        if (!seen.has(cur.testUrl)) {
-          // Add URL to seen list
-          seen.add(cur.testUrl);
-
-          // Filter same URLs from results
-          const sameUrl = labArray.filter((obj) => obj.testUrl === cur.testUrl);
-
-          // Create object witht the same properties but calculating the median value per url
-          const objMedian = {
-            testUrl: cur.testUrl,
-            PerformanceScore: median(
-              sameUrl.map(({ PerformanceScore }) => PerformanceScore)
-            ),
-            TTFB: median(sameUrl.map(({ TTFB }) => TTFB)),
-            labFCP: median(sameUrl.map(({ labFCP }) => labFCP)),
-            labLCP: median(sameUrl.map(({ labLCP }) => labLCP)),
-            labCLS: median(sameUrl.map(({ labCLS }) => labCLS)),
-            TTI: median(sameUrl.map(({ TTI }) => TTI)),
-            speedIndex: median(sameUrl.map(({ speedIndex }) => speedIndex)),
-            TBT: median(sameUrl.map(({ TBT }) => TBT)),
-            // thirdPartySummary: median(sameUrl.map(({ thirdPartySummary }) => thirdPartySummary)),
-            labMaxFID: median(sameUrl.map(({ labMaxFID }) => labMaxFID)),
-            // mainThread: median(sameUrl.map(({ mainThread }) => mainThread)),
-            // scriptEvaluation: median(sameUrl.map(({ scriptEvaluation }) => scriptEvaluation)),
-            // paintCompositeRender: median(sameUrl.map(({ paintCompositeRender }) => paintCompositeRender)),
-            // styleLayout: median(sameUrl.map(({ styleLayout }) => styleLayout)),
-            // other: median(sameUrl.map(({ other }) => other)),
-            // parseHTML: median(sameUrl.map(({ parseHTML }) => parseHTML)),
-            // scriptParseCompile: median(sameUrl.map(({ scriptParseCompile }) => scriptParseCompile)),
-            // garbageCollection: median(sameUrl.map(({ garbageCollection }) => garbageCollection)),
-            pageSize: median(sameUrl.map(({ pageSize }) => pageSize)),
-            date: moment().format("YYYY-MM-DD HH:mm"),
-          };
-
-          // Push to accumulator
-          acc.push(objMedian);
-        }
-
-        // Return accumulator
-        return acc;
-      }, []);
+      const labMedian = reduceResults(median, labDataResFilter, iterationNum);
+      const labAverage = reduceResults(calcAverage, labDataResFilter, iterationNum);
 
       // Write medians to CSV file
       // writeFile(`./${folder}/results-median${deviceDateTimeStr}.csv`, parse(labMedian)).catch((err) =>
@@ -418,12 +469,25 @@ const getSpeedData = async ({
       // );
       console.log("Median scores.......", labMedian);
       resultObj[device].median = labMedian;
+      resultObj[device].average = labAverage;
+
       if (device === "mobile") {
         setMobileMedianScores([...labMedian]);
       }
       if (device === "desktop") {
         setDesktopMedianScores([...labMedian]);
       }
+
+      if (device === "mobile") {
+        setMobileAverageScores([...labAverage]);
+      }
+      if (device === "desktop") {
+        setDesktopAverageScores([...labAverage]);
+      }
+
+      labMedian.map(row=>{
+        row && addRow(dbCollection,row);
+      });
       setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully calculated ${device} median scores.`, type: 'success'}))
     }
   });
@@ -439,6 +503,12 @@ const getSpeedData = async ({
   console.timeEnd();
 
   console.log("Final resultObj", resultObj);
+
+
+  // const endDateTime = new Date();
+  // const endTimeStamp = endDateTime.getTime();
+  // const timeDelta = endTimeStamp - startTimeStamp;
+  // setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully calculated ${totalReqCount} URL scores in ${moment(timeDelta, "x").format("HH:mm:ss")}.`, type: 'success'}))
 
   return resultObj;
 };

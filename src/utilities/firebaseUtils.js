@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore,doc,setDoc,addDoc } from "firebase/firestore";
 
 
-export const addRow = function(collection,data) {
+export const addRow = async function(collection,data) {
     const fireStore = getFirestore();
     if (!collection) return;
     addDoc(collection,data)

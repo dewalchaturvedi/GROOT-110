@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ENDPOINT, KEY, uniquePsiDummyString } from "../constants/universal";
+import { ENDPOINT, uniquePsiDummyString } from "../constants/universal";
 
 let tempPsiId = 0;
 const addtempPsiIdToUrl = (url) => {
@@ -10,8 +10,8 @@ const addtempPsiIdToUrl = (url) => {
 }
 
 // Custom function to request PageSpeed API
-export const apiRequest = async (url, device) => {
+export const apiRequest = async (url, device, key='') => {
   tempPsiId += 1;
-  const { data } = await axios(`${ENDPOINT}?url=${encodeURIComponent(addtempPsiIdToUrl(url))}&strategy=${device}&key=${KEY}`);
+  const { data } = await axios(`${ENDPOINT}?url=${encodeURIComponent(addtempPsiIdToUrl(url))}&strategy=${device}&key=${key}`);
   return data;
 };

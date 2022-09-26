@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { styled, useTheme } from '@mui/material/styles';
+import { Overlay } from '../Overlay/Overlay';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -24,6 +25,14 @@ import { addRow } from '../../utilities/firebaseUtils';
 import { collection, getFirestore } from 'firebase/firestore';
 
 const drawerWidth = 240;
+// const ModalContainer = StyledComponent.div`
+// position: absolute;
+// top: 0;
+// left: 0;
+// width: 100%;
+// height: 100%;
+// background: rgba(0, 0, 0, 0.91)
+// `;
 const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })(
     ({ theme, open }) => ({
         flexGrow: 1,
@@ -71,26 +80,38 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function PersistentDrawerLeft(props) {
     let {fire = {}} = props;
-    let firestore = getFirestore();
-    var dbCollection = collection(firestore,"/psi-99");
+    // let firestore = getFirestore();
+    // var dbCollection = collection(firestore,"/psi-99");
     const theme = useTheme();
     const [open, setOpen] = React.useState(false);
     const [showHome, setShowHome] = React.useState(true);
-
+    const [activeScreen, setActiveScreen] = React.useState('Home'); 
+    const navItems = {
+        'Home':{
+            name:'Home',
+            icon:<HomeIcon/>,
+            component:<PerformanceCalculator/>,
+        },
+        'Insights':{
+            name:'Insights',
+            icon:<InsightsIcon/>,
+            component:<Insights/>
+        },
+    }
     const handleDrawerOpen = () => {
         setOpen(true);
-        addRow(dbCollection,{"cls":0.01,"page_score":'76'})
+        // addRow(dbCollection,{"cls":0.01,"page_score":'76'})
     };
 
     const handleDrawerClose = () => {
         setOpen(false);
     };
 
-    const navButtonClickHandler = () => {
+    const navButtonClickHandler = (item) => {
         setOpen(false);
-        setShowHome(!showHome);
+        setActiveScreen(item);
     }
-
+    let activeComponent = navItems[activeScreen].component;
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
@@ -106,7 +127,7 @@ export default function PersistentDrawerLeft(props) {
                         <MenuIcon />
                     </IconButton>
                     <Typography variant="h6" noWrap component="div">
-                        Page Trends
+                    IPS: InfoEdge Performance Suite
                     </Typography>
                 </Toolbar>
             </AppBar>
@@ -130,13 +151,13 @@ export default function PersistentDrawerLeft(props) {
                 </DrawerHeader>
                 <Divider />
                 <List>
-                    {['Home', 'Insights'].map((text, index) => (
-                        <ListItem key={text} disablePadding >
-                            <ListItemButton onClick={navButtonClickHandler} >
+                    {(Object.keys(navItems)).map((item, index) => (
+                        <ListItem key={index} disablePadding >
+                            <ListItemButton onClick={()=>navButtonClickHandler(navItems[item].name)} >
                                 <ListItemIcon>
-                                    {index % 2 === 0 ? <HomeIcon /> : <InsightsIcon />}
+                                    {navItems[item].icon}
                                 </ListItemIcon>
-                                <ListItemText primary={text} />
+                                <ListItemText primary={navItems[item].name} />
                             </ListItemButton>
                         </ListItem>
                     ))}
@@ -144,9 +165,16 @@ export default function PersistentDrawerLeft(props) {
                 <Divider />
             </Drawer>
             <Main open={open}>
+            {/* {!showHome && <h1 style={{zIndex:'10',position:'absolute',top:'100px',left:'50px'}}>Under Construction</h1>} */}
+            {activeScreen == 'Insights' && <Overlay/>}
+
                 <DrawerHeader />
-                {showHome ? <PerformanceCalculator /> : <Insights />}
+                {activeComponent}
             </Main>
+            {/* <p className={"footer-heart"}>
+  Made with <g-emoji className="g-emoji" alias="heart" fallback-src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png">
+<img className="emoji" alt="heart" height="20" width="20" src="https://github.githubassets.com/images/icons/emoji/unicode/2764.png"/></g-emoji> by <a href="https://armin.id">Arminisme</a>
+</p> */}
         </Box>
     );
 }
