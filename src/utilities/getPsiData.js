@@ -75,7 +75,11 @@ const getSpeedData = async ({
   setMobileAverageScores,
   setDesktopAverageScores,
   setSnackBar,
-  apiKey=''
+  apiKey='',
+  setSuccessCount,
+  setErrorCount,
+  setTotalUrlCount,
+  setProgress,
 }) => {
   setMobileTestScores([]);
   setDesktopTestScores([]);
@@ -95,6 +99,9 @@ const getSpeedData = async ({
   let firestore = getFirestore();
   let dbCollection = collection(firestore,"/psi-99");
   const totalReqCount = urlList.length * reqCountPerUrl;
+  let totalSuccessCount = 0;
+  setTotalUrlCount(totalReqCount);
+  let stopExecution = false;
   // const totalSuccessReq = 0;
 
   // const urlReqObj = {};
@@ -102,6 +109,7 @@ const getSpeedData = async ({
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
   devices.forEach(async (device) => {
+    stopExecution = false;
 
     setSnackBar((snackBar) => ({...snackBar, open: true, message: `Fetching scores for ${urlList.length} URLs, ${_round} rounds of ${iterationNum} iterations for ${device}`, type: 'info'}))
 
@@ -158,6 +166,10 @@ const getSpeedData = async ({
           "Retry count reached 10. I am tired, let me rest for a bit."
         );
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retry count reached 10. I am tired, let me rest for a bit.`, type: 'warning'}))
+        stopExecution = true;
+        break;
+      }
+      if (stopExecution) {
         break;
       }
       retryCount += 1;
@@ -167,6 +179,10 @@ const getSpeedData = async ({
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        if (stopExecution) {
+          break;
+        }
+ 
         // Iterate through list of URLs within chunk
         // for (let _round = 0; _round < iterationNum; _round++) {
         // Log _round of testing
@@ -182,8 +198,12 @@ const getSpeedData = async ({
         const rawBatchResults = await Promise.allSettled(promises);
 
         // Iterate through API responses
+        let chunkSuccessCount = 0;
+        let chunkErrorCount = 0;
         const results = rawBatchResults.map((res, index) => {
           if (res.status === "fulfilled") {
+            chunkSuccessCount += 1;
+            totalSuccessCount += 1;
             console.log("response 0 ", chunk[index], res);
             // Variables to make extractions easier
             // const fieldMetrics = res.value.loadingExperience.metrics;
@@ -314,7 +334,15 @@ const getSpeedData = async ({
             };
             return finalObj;
           } else {
-            tempRetryList.push(chunk[index]);
+            chunkErrorCount += 1;
+            if (res.reason.response?.data.error.message.includes('API key not valid. Please pass a valid API key.') ||
+            res.reason.message.includes('API key not valid. Please pass a valid API key.')) {
+              setSnackBar((snackBar) => ({...snackBar, open: true, message: `API key not valid. Please pass a valid API key.`, type: 'error'}));
+              stopExecution = true;
+            } else {
+              tempRetryList.push(chunk[index]);
+            }
+            
             console.log("rejected 0 ", chunk[index], res);
             console.log(`Problem retrieving results for ${chunk[index]}`);
             console.log(
@@ -355,19 +383,12 @@ const getSpeedData = async ({
           }
         });
 
-        if (queriesPerMinuteLimitReached) {
-          console.log("That's too much work in a minute, lets take a break.");
-          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a minute, lets take a break.`, type: 'warning'}))
-          // console.log('Reached Queries per minute limit, waiting for 1 minute');
-          await sleep(60000);
-        }
+        setSuccessCount(prevSuccessCount => prevSuccessCount+chunkSuccessCount);
+        setProgress(totalSuccessCount*100/totalReqCount);
+        setErrorCount(prevErrorCount => prevErrorCount+chunkErrorCount);
 
-        if (queriesPerDayLimitReached) {
-          console.log(
-            "That's too much work in a day, lets wrap up for the day."
-          );
-          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a day, lets wrap up for the day.`, type: 'warning'}))
-          await sleep(60000 * 60 * 24);
+        if (stopExecution) {
+          break;
         }
 
         const filteredResults = results.filter((obj) => obj !== undefined);
@@ -389,10 +410,28 @@ const getSpeedData = async ({
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
         // }
+
+        if (queriesPerMinuteLimitReached) {
+          console.log("That's too much work in a minute, lets take a break.");
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a minute, lets take a break.`, type: 'warning'}))
+          // console.log('Reached Queries per minute limit, waiting for 1 minute');
+          await sleep(60000);
+        }
+
+        if (queriesPerDayLimitReached) {
+          console.log(
+            "That's too much work in a day, lets wrap up for the day."
+          );
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a day, lets wrap up for the day.`, type: 'warning'}))
+          await sleep(60000 * 60 * 24);
+        }
       }
       allReqUrls = tempRetryList;
     }
 
+    if (stopExecution) {
+      return;
+    }
     // If there if there is field data
     if (fieldDataRes.length > 0) {
       // Write field data results into CSV
