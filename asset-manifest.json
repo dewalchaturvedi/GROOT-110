@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/GROOT-110/static/css/main.073c9b0a.css",
-    "main.js": "/GROOT-110/static/js/main.3716b1ec.js",
-    "static/js/787.5cc0d31c.chunk.js": "/GROOT-110/static/js/787.5cc0d31c.chunk.js",
-    "index.html": "/GROOT-110/index.html",
-    "main.073c9b0a.css.map": "/GROOT-110/static/css/main.073c9b0a.css.map",
-    "main.3716b1ec.js.map": "/GROOT-110/static/js/main.3716b1ec.js.map",
-    "787.5cc0d31c.chunk.js.map": "/GROOT-110/static/js/787.5cc0d31c.chunk.js.map"
+    "main.css": "/static/css/main.073c9b0a.css",
+    "main.js": "/static/js/main.cac71431.js",
+    "static/js/787.5cc0d31c.chunk.js": "/static/js/787.5cc0d31c.chunk.js",
+    "index.html": "/index.html",
+    "main.073c9b0a.css.map": "/static/css/main.073c9b0a.css.map",
+    "main.cac71431.js.map": "/static/js/main.cac71431.js.map",
+    "787.5cc0d31c.chunk.js.map": "/static/js/787.5cc0d31c.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.073c9b0a.css",
-    "static/js/main.3716b1ec.js"
+    "static/js/main.cac71431.js"
   ]
 }
