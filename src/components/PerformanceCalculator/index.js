@@ -31,6 +31,7 @@ const PerformanceCalculator = props => {
 
     const [successCount, setSuccessCount] = useState(0);
     const [errorCount, setErrorCount] = useState(0);
+    const [queueCount, setQueueCount] = useState(0);
     const [totalUrlCount, setTotalUrlCount] = useState(0);
     const [progress, setProgress] = useState(0);
     
@@ -55,7 +56,7 @@ const PerformanceCalculator = props => {
         hideShimmer();
     }, [mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress });
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount });
         setBuildRunning(true);
     };
 
@@ -94,9 +95,9 @@ const PerformanceCalculator = props => {
                         <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey}  >Build</Button>
                         </Grid>
                         {buildRunning && <>
-                            <Grid item xs={3}><p>Total: {totalUrlCount}</p></Grid>
+                            <Grid item xs={3}><p>Total URLs: {totalUrlCount}</p></Grid>
                             <Grid item xs={3}><p>Success: {successCount}</p></Grid>
-                            <Grid item xs={3}><p>Errors: {errorCount}</p></Grid>
+                            <Grid item xs={3}><p>Retry Queue Count: {queueCount}</p></Grid>
                         </>}
                     </Grid>
                 </div>

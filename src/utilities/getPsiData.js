@@ -80,6 +80,7 @@ const getSpeedData = async ({
   setErrorCount,
   setTotalUrlCount,
   setProgress,
+  setQueueCount,
 }) => {
   setMobileTestScores([]);
   setDesktopTestScores([]);
@@ -98,7 +99,7 @@ const getSpeedData = async ({
   const reqCountPerUrl = iterationNum * _round;
   let firestore = getFirestore();
   let dbCollection = collection(firestore,"/psi-99");
-  const totalReqCount = urlList.length * reqCountPerUrl;
+  const totalReqCount = urlList.length * reqCountPerUrl * devices.length;
   let totalSuccessCount = 0;
   setTotalUrlCount(totalReqCount);
   let stopExecution = false;
@@ -383,10 +384,6 @@ const getSpeedData = async ({
           }
         });
 
-        setSuccessCount(prevSuccessCount => prevSuccessCount+chunkSuccessCount);
-        setProgress(totalSuccessCount*100/totalReqCount);
-        setErrorCount(prevErrorCount => prevErrorCount+chunkErrorCount);
-
         if (stopExecution) {
           break;
         }
@@ -410,6 +407,11 @@ const getSpeedData = async ({
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
         // }
+
+        setSuccessCount(prevSuccessCount => prevSuccessCount+chunkSuccessCount);
+        setProgress(totalSuccessCount*100/totalReqCount);
+        setErrorCount(prevErrorCount => prevErrorCount+chunkErrorCount);
+        setQueueCount(tempRetryList.length);
 
         if (queriesPerMinuteLimitReached) {
           console.log("That's too much work in a minute, lets take a break.");
