@@ -99,7 +99,7 @@ const getSpeedData = async ({
   const reqCountPerUrl = iterationNum * _round;
   let firestore = getFirestore();
   let dbCollection = collection(firestore,"/psi-99");
-  const totalReqCount = urlList.length * reqCountPerUrl;
+  const totalReqCount = urlList.length * reqCountPerUrl * devices.length;
   let totalSuccessCount = 0;
   setTotalUrlCount(totalReqCount);
   let stopExecution = false;
