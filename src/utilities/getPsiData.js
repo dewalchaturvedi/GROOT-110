@@ -88,6 +88,10 @@ const getSpeedData = async ({
   setDesktopMedianScores([]);
   setMobileAverageScores([]);
   setDesktopAverageScores([]);
+  setSuccessCount(0);
+  setErrorCount(0);
+  setProgress(0);
+  setQueueCount(0);
 
   const startDateTime = new Date();
   const startTimeStamp = startDateTime.getTime();
@@ -180,6 +184,9 @@ const getSpeedData = async ({
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        queriesPerMinuteLimitReached = false;
+        queriesPerDayLimitReached = false;
+
         if (stopExecution) {
           break;
         }
