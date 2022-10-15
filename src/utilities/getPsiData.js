@@ -74,6 +74,8 @@ const getSpeedData = async ({
   setDesktopMedianScores,
   setMobileAverageScores,
   setDesktopAverageScores,
+  setMobileOriginFieldData,
+  setDesktopOriginFieldData,
   setSnackBar,
   apiKey='',
   setSuccessCount,
@@ -207,67 +209,47 @@ const getSpeedData = async ({
             totalSuccessCount += 1;
             console.log("response 0 ", chunk[index], res);
             // Variables to make extractions easier
-            // const fieldMetrics = res.value.loadingExperience.metrics;
-            // const originFallback = res.value.loadingExperience.origin_fallback;
+            const fieldMetrics = res.value.originLoadingExperience.metrics;
+            const originFallback = res.value.loadingExperience.origin_fallback;
             const labAudit = res.value.lighthouseResult.audits;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
-            // if (_round === 0 && res.value.loadingExperience.metrics) {
-            //   if (!originFallback) {
-            //     // Extract Field metrics (if there are)
-            //     const fieldFCP =
-            //       fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
-            //     const fieldFID =
-            //       fieldMetrics.FIRST_INPUT_DELAY_MS?.percentile ?? 'no data';
-            //     const fieldLCP =
-            //       fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile ??
-            //       'no data';
-            //     const fieldCLS =
-            //       fieldMetrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile ??
-            //       'no data';
+            if (_round === 1 && res.value.originLoadingExperience.metrics) {
+              // Extract Field metrics (if there are)
+              const fieldFCP =
+                fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
+              const fieldFID =
+                fieldMetrics.FIRST_INPUT_DELAY_MS?.percentile ?? 'no data';
+              const fieldLCP =
+                fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS?.percentile ??
+                'no data';
+              const fieldCLS =
+                fieldMetrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE?.percentile ??
+                'no data';
+              const fieldTTI =
+                fieldMetrics?.EXPERIMENTAL_TIME_TO_FIRST_BYTE?.percentile ??  
+                'no data';
 
-            //     // Construct FieldResult object
-            //     const fieldResObj = {
-            //       'test url': res.value.loadingExperience.id,
-            //       fcp: fieldFCP,
-            //       fid: fieldFID,
-            //       lcp: fieldLCP,
-            //       cls: fieldCLS / 100,
-            //       date: moment().format('YYYY-MM-DD HH:mm'),
-            //     };
-            //     // Push to fieldRes array
-            //     fieldDataRes.push(fieldResObj);
-            //   } else {
-            //     if (!fieldOriginDomain.has(res.value.loadingExperience.id)) {
-            //       console.log(
-            //         `No field data for ${res.value.id}, extracting origin data from ${res.value.loadingExperience.id} instead... `
-            //       );
 
-            //       // Otherwise Extract Origin Field metrics (if there are)
-            //       const fieldFCP =
-            //         fieldMetrics.FIRST_CONTENTFUL_PAINT_MS.percentile;
-            //       const fieldFID = fieldMetrics.FIRST_INPUT_DELAY_MS.percentile;
-            //       const fieldLCP =
-            //         fieldMetrics.LARGEST_CONTENTFUL_PAINT_MS.percentile;
-            //       const fieldCLS =
-            //         fieldMetrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile;
-
-            //       // Construct fieldResult object
-            //       const fieldResObj = {
-            //         'test url': res.value.loadingExperience.id,
-            //         fcp: fieldFCP,
-            //         fid: fieldFID,
-            //         lcp: fieldLCP,
-            //         cls: fieldCLS / 100,
-            //         date: moment().format('YYYY-MM-DD HH:mm'),
-            //       };
-            //       // Push object to fieldOrigin array
-            //       fieldOriginRes.push(fieldResObj);
-            //       fieldOriginDomain.add(res.value.loadingExperience.id);
-            //     }
-            //   }
-            // }
-
+              // Construct FieldResult object
+              const fieldResObj = {
+                testUrl: res.value.originLoadingExperience.id,
+                fieldFCP: fieldFCP,
+                fieldFID: fieldFID,
+                fieldLCP: fieldLCP,
+                fieldCLS: fieldCLS / 100,
+                TTI:fieldTTI,
+                date: moment().format('YYYY-MM-DD HH:mm'),
+              };
+              // Push to fieldRes array
+              fieldDataRes.push(fieldResObj);
+            }
+            if (device === "mobile") {
+              setMobileOriginFieldData([...fieldDataRes])
+            }
+            if (device === "desktop") {
+              setDesktopOriginFieldData([...fieldDataRes])
+            }
             // Extract Lab metrics
             const testUrl = removeTempPsiIdFromUrl(
               res.value.lighthouseResult.finalUrl
@@ -415,7 +397,7 @@ const getSpeedData = async ({
 
         if (queriesPerMinuteLimitReached) {
           console.log("That's too much work in a minute, lets take a break.");
-          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a minute, lets take a break.`, type: 'warning'}))
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `Per minute limit reached, retrying after a minute`, type: 'warning'}))
           // console.log('Reached Queries per minute limit, waiting for 1 minute');
           await sleep(60000);
         }
@@ -424,7 +406,7 @@ const getSpeedData = async ({
           console.log(
             "That's too much work in a day, lets wrap up for the day."
           );
-          setSnackBar((snackBar) => ({...snackBar, open: true, message: `That's too much work in a day, lets wrap up for the day.`, type: 'warning'}))
+          setSnackBar((snackBar) => ({...snackBar, open: true, message: `Per data quota exceeded, update API key to calculate scores again`, type: 'warning'}))
           await sleep(60000 * 60 * 24);
         }
       }

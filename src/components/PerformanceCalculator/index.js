@@ -28,6 +28,8 @@ const PerformanceCalculator = props => {
     const [desktopMedianScores, setDesktopMedianScores] = useState([]);
     const [mobileAverageScores, setMobileAverageScores] = useState([]);
     const [desktopAverageScores, setDesktopAverageScores] = useState([]);
+    const [mobileOriginFieldData, setMobileOriginFieldData] = useState([]);
+    const [desktopOriginFieldData, setDesktopOriginFieldData] = useState([]);
 
     const [successCount, setSuccessCount] = useState(0);
     const [errorCount, setErrorCount] = useState(0);
@@ -52,23 +54,24 @@ const PerformanceCalculator = props => {
         setPsiConfig({ ...psiConfig, [e.target.id ? e.target.id : e.target.name]: e.target.value })
     }
 
-    useEffect(() => {
-        hideShimmer();
-    }, [mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount });
+        setSuccessCount(0);
+        setQueueCount(0);
+        setTotalUrlCount(0);
+        setProgress(0);
+        setMobileTestScores([]);
+        setDesktopTestScores([]);
+        setMobileMedianScores([]);
+        setDesktopMedianScores([]);
+        setMobileAverageScores([]);
+        setDesktopAverageScores([]);
+        setMobileOriginFieldData([]);
+        setDesktopOriginFieldData([]);
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount,setMobileOriginFieldData, setDesktopOriginFieldData });
         setBuildRunning(true);
     };
-
-    const hideShimmer = () => {
-        if (psiConfig.platform === 'desktop,mobile') {
-            setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0, desktop: !desktopMedianScores.length > 0 })
-        } else if (psiConfig.platform === 'desktop') {
-            setShimmer({ ...isShimmer, desktop: !desktopMedianScores.length > 0 })
-        } else if (psiConfig.platform === 'mobile') {
-            return setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0 })
-        }
-    }
+    const transformedFieldOriginMobile = mobileOriginFieldData.length>0? [mobileOriginFieldData[0]]:mobileOriginFieldData;
+    const transformedFieldOriginDesktop = desktopOriginFieldData.length>0 ? [desktopOriginFieldData[0]]:desktopOriginFieldData
     return (
         <div>
             <Container>
@@ -116,14 +119,14 @@ const PerformanceCalculator = props => {
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} hideShimmer={isShimmer.mobile} />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginMobile: filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} hideShimmer={progress !== 100} />
                             </div>
                             <div>
                                 <p style={{ marginLeft: '45%' }}>PSI Results : Desktop</p>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} hideShimmer={isShimmer.desktop} />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginDesktop: filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} hideShimmer={progress !== 100} />
                             </div>
                         </div>
                         :
@@ -132,7 +135,7 @@ const PerformanceCalculator = props => {
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
-                            <CustomizedTables hideShimmer={psiConfig.platform === 'mobile' ? isShimmer.mobile : isShimmer.desktop} testScores={psiConfig.platform === 'mobile' ? (filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
+                            <CustomizedTables hideShimmer={progress !== 100} testScores={psiConfig.platform === 'mobile' ? (filter==='origin' ? transformedFieldOriginMobile:filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores :filter==='origin' ? transformedFieldOriginDesktop: filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
                         </div>
                     }
                 </div> : null}

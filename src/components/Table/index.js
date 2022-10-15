@@ -29,19 +29,9 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     },
 }));
 
-function createData(name, calories, fat, carbs, protein) {
-    return { name, calories, fat, carbs, protein };
-}
 
 export default function CustomizedTables(props) {
 
-
-
-    const rows = [
-        props.testScores.map(item => {
-            createData(item.testUrl, item.PerformanceScore, item.labCLS, item.TBT, item.labLCP, item.labFCP, item.TTFB, item.TTI, item.pageSize, item.labMaxFID, item.speedIndex, item.date)
-        })
-    ];
     return (
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
             <TableContainer sx={{ maxHeight: 440 }}>
@@ -65,16 +55,16 @@ export default function CustomizedTables(props) {
                     <TableBody>
                         {props.testScores.map((row) => (
                             <StyledTableRow key={row.name}>
-                                <StyledTableCell component="th" scope="row">{row.testUrl}</StyledTableCell>
+                                <StyledTableCell component="th" scope="row">{row.testUrl || ''}</StyledTableCell>
                                 <StyledTableCell align="right">{row.PerformanceScore}</StyledTableCell>
-                                <StyledTableCell align="right">{row.labCLS}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labCLS || row.fieldCLS}</StyledTableCell>
                                 <StyledTableCell align="right">{row.TBT}</StyledTableCell>
-                                <StyledTableCell align="right">{row.labLCP}</StyledTableCell>
-                                <StyledTableCell align="right">{row.labFCP}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labLCP || row.fieldLCP}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labFCP || row.fieldFCP}</StyledTableCell>
                                 <StyledTableCell align="right">{row.TTFB}</StyledTableCell>
                                 <StyledTableCell align="right">{row.TTI}</StyledTableCell>
                                 <StyledTableCell align="right">{row.pageSize}</StyledTableCell>
-                                <StyledTableCell align="right">{row.labMaxFID}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labMaxFID || row.fieldFID}</StyledTableCell>
                                 <StyledTableCell align="right">{row.speedIndex}</StyledTableCell>
                                 <StyledTableCell align="right">{row.date}</StyledTableCell>
                             </StyledTableRow>
