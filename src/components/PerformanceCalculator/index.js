@@ -54,6 +54,12 @@ const PerformanceCalculator = props => {
         setPsiConfig({ ...psiConfig, [e.target.id ? e.target.id : e.target.name]: e.target.value })
     }
 
+    useEffect(() => {
+        toggleShimmer();
+        if(progress ===100 && !(mobileMedianScores.length>0 || desktopMedianScores.length >0 )){
+            setSnackBar(snackBar => ({ ...snackBar, open: true, message: 'Test scores successfully fetched, calculating median and average scores shortly',type: 'warning' }));
+        }
+    }, [filter,progress,mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
         setSuccessCount(0);
         setQueueCount(0);
@@ -72,6 +78,34 @@ const PerformanceCalculator = props => {
     };
     const transformedFieldOriginMobile = mobileOriginFieldData.length>0? [mobileOriginFieldData[0]]:mobileOriginFieldData;
     const transformedFieldOriginDesktop = desktopOriginFieldData.length>0 ? [desktopOriginFieldData[0]]:desktopOriginFieldData
+
+    const toggleShimmer = () => {
+        if (psiConfig.platform === 'desktop,mobile') {
+            if(filter === 'origin'){
+                setShimmer({ ...isShimmer, mobile: !mobileOriginFieldData.length > 0, desktop: !desktopOriginFieldData.length > 0 })
+            }else if(filter === 'tests'){
+                setShimmer({ ...isShimmer, mobile: progress!==100, desktop: progress!==100})
+            }else{
+                setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0, desktop: !desktopMedianScores.length > 0 })
+            }
+        } else if (psiConfig.platform === 'desktop') {
+            if(filter === 'origin'){
+                setShimmer({ ...isShimmer, desktop: !desktopOriginFieldData.length > 0 })
+            }else if(filter === 'tests'){
+                setShimmer({ ...isShimmer, desktop: progress!==100})
+            }else{
+                setShimmer({ ...isShimmer, desktop: !desktopMedianScores.length > 0 })
+            }
+        } else if (psiConfig.platform === 'mobile') {
+            if(filter === 'origin'){
+                setShimmer({ ...isShimmer, desktop: !mobileOriginFieldData.length > 0 })
+            }else if(filter === 'tests'){
+                setShimmer({ ...isShimmer, mobile: progress!==100})
+            }else{
+                return setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0 })
+            }
+        }
+    }
     return (
         <div>
             <Container>
@@ -119,14 +153,14 @@ const PerformanceCalculator = props => {
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginMobile: filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} hideShimmer={progress !== 100} />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginMobile: filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} showShimmer={isShimmer.mobile}  />
                             </div>
                             <div>
                                 <p style={{ marginLeft: '45%' }}>PSI Results : Desktop</p>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginDesktop: filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} hideShimmer={progress !== 100} />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginDesktop: filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} showShimmer={isShimmer.desktop}  />
                             </div>
                         </div>
                         :
@@ -135,7 +169,7 @@ const PerformanceCalculator = props => {
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
-                            <CustomizedTables hideShimmer={progress !== 100} testScores={psiConfig.platform === 'mobile' ? (filter==='origin' ? transformedFieldOriginMobile:filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores :filter==='origin' ? transformedFieldOriginDesktop: filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
+                            <CustomizedTables showShimmer={psiConfig.platform === 'mobile' ? isShimmer.mobile : isShimmer.desktop} testScores={psiConfig.platform === 'mobile' ? (filter==='origin' ? transformedFieldOriginMobile:filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores :filter==='origin' ? transformedFieldOriginDesktop: filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
                         </div>
                     }
                 </div> : null}
@@ -145,9 +179,3 @@ const PerformanceCalculator = props => {
 }
 
 export default PerformanceCalculator;
-
-
-
-
-//             if (mobileMedianScores.length > 0) setShimmer({ ...isShimmer, mobile: false })
-//             else if (desktopMedianScores.length > 0) setShimmer({ ...isShimmer, desktop: false })

@@ -69,7 +69,7 @@ export default function CustomizedTables(props) {
                                 <StyledTableCell align="right">{row.date}</StyledTableCell>
                             </StyledTableRow>
                         ))}
-                        {props.hideShimmer && <StyledTableRow>
+                        {props.showShimmer && <StyledTableRow>
                             <StyledTableCell component="th" scope="row">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
