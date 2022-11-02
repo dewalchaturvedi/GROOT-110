@@ -64,7 +64,7 @@ function reduceResults(calculatorFn, resArray, iterationNum) {
 }
 
 const getSpeedData = async ({
-  iterationNum = 20,
+  iterationNum,
   urlListCSV = "",
   round = "1",
   device = "mobile", // desktop
@@ -209,12 +209,12 @@ const getSpeedData = async ({
             totalSuccessCount += 1;
             console.log("response 0 ", chunk[index], res);
             // Variables to make extractions easier
-            const fieldMetrics = res.value.originLoadingExperience.metrics;
-            const originFallback = res.value.loadingExperience.origin_fallback;
-            const labAudit = res.value.lighthouseResult.audits;
+            const fieldMetrics = res.value?.originLoadingExperience?.metrics;
+            const originFallback = res.value?.loadingExperience?.origin_fallback;
+            const labAudit = res.value?.lighthouseResult?.audits;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
-            if (_round === 1 && res.value.originLoadingExperience.metrics) {
+            if (fieldMetrics &&  _round === 1 && res.value.originLoadingExperience.metrics) {
               // Extract Field metrics (if there are)
               const fieldFCP =
                 fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';

@@ -1,5 +1,5 @@
 import { React, useEffect, useState } from 'react';
-import { Button, Grid, TextField } from '@mui/material';
+import { Button, FormControl, Grid, TextField } from '@mui/material';
 import Selector from '../Selector';
 import { Container } from '@mui/system';
 import CustomizedTables from '../Table';
@@ -20,6 +20,7 @@ const PerformanceCalculator = props => {
         platform: 'desktop,mobile',
         urlListCSV: '',
         apiKey: '',
+        iterationNum: 20
     });
     const [isShimmer, setShimmer] = useState({ mobile: true, desktop: true })
     const [mobileTestScores, setMobileTestScores] = useState([]);
@@ -73,7 +74,7 @@ const PerformanceCalculator = props => {
         setDesktopAverageScores([]);
         setMobileOriginFieldData([]);
         setDesktopOriginFieldData([]);
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount,setMobileOriginFieldData, setDesktopOriginFieldData });
+        getSpeedData({iterationNum: psiConfig?.iterationNum,  round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount,setMobileOriginFieldData, setDesktopOriginFieldData });
         setBuildRunning(true);
     };
     const transformedFieldOriginMobile = mobileOriginFieldData.length>0? [mobileOriginFieldData[0]]:mobileOriginFieldData;
@@ -111,16 +112,22 @@ const PerformanceCalculator = props => {
             <Container>
                 <h1>Page Speed Calculator</h1>
                 <p>Please enter the following data to initiate build</p>
+               <FormControl fullWidth={true}>
                 <div>
-                    <TextField error={psiConfig?.apiKey ? false : true} helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey"
+                    <TextField error={psiConfig?.apiKey ? false : true} autoComplete ={"on"}  helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey"
                         label={"Your API Key"}
                         variant="standard" style={textContainerStyle} onChange={handleChange} />
                 </div>
                 <div>
-                    <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard" style={textContainerStyle} onChange={handleChange} />
+                    <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard"  defaultValue={psiConfig.numberOfRounds} style={textContainerStyle} onChange={handleChange} />
                 </div>
+
                 <div>
-                    <TextField id="urlListCSV" label="Enter URL" variant="standard" style={textContainerStyle}
+                    <TextField id="iterationNum" label="Number of iteration each round" variant="standard" defaultValue={psiConfig.iterationNum} style={textContainerStyle} onChange={handleChange} />
+                </div>
+
+                <div>
+                    <TextField id="urlListCSV" label="Enter URL" variant="standard"  style={textContainerStyle}
                         onChange={handleChange} />
                 </div>
                 <div style={{ width: '30%', margin: 20 }}>
@@ -138,6 +145,7 @@ const PerformanceCalculator = props => {
                         </>}
                     </Grid>
                 </div>
+                </FormControl>
                 <ToastMessage
                     open={snackBar.open}
                     message={snackBar.message}
