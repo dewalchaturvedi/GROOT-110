@@ -221,7 +221,7 @@ const getSpeedData = async ({
             const labAudit = res.value?.lighthouseResult?.audits;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
-            if (fieldMetrics &&  _round === 1 && res.value.originLoadingExperience.metrics) {
+            if (fieldMetrics &&  _round === 1) {
               // Extract Field metrics (if there are)
               const fieldFCP =
                 fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
