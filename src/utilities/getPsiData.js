@@ -99,6 +99,7 @@ const getSpeedData = async ({
   const startTimeStamp = startDateTime.getTime();
   const _round = Number.parseInt(round, 10);
   const devices = device.split(",");
+  const _MAX_PARALLEL_REQ_COUNT = MAX_PARALLEL_REQ_COUNT/devices.length;
   // Get URL List
   const resultObj = { mobile: {}, desktop: {} };
   const urlList = urlListCSV.split(",");
@@ -122,7 +123,7 @@ const getSpeedData = async ({
 
     let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
 
-    const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
+    const splitChunks = allReqUrls.length / _MAX_PARALLEL_REQ_COUNT;
     console.log(
       `The set of urls has been split up in ${Math.ceil(splitChunks)} chunk/s`
     );
@@ -182,7 +183,7 @@ const getSpeedData = async ({
       retryCount += 1;
       const tempRetryList = [];
       // Break URL list into chunks to prevent API errors
-      const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
+      const chunks = chunkArray(allReqUrls, _MAX_PARALLEL_REQ_COUNT);
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
