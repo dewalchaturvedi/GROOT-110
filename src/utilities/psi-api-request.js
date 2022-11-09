@@ -10,9 +10,10 @@ const addtempPsiIdToUrl = (url) => {
 }
 
 // Custom function to request PageSpeed API
-export const apiRequest = async (url, device, key='') => {
+export const apiRequest = async (url, device, key='', signal) => {
   tempPsiId += 1;
   let apiUrl = window.ENDPOINT || ENDPOINT;
-  const { data } = await axios(`${apiUrl}?url=${encodeURIComponent(addtempPsiIdToUrl(url))}&strategy=${device}&key=${key}`);
+ 
+  const { data } = await axios(`${apiUrl}?url=${encodeURIComponent(addtempPsiIdToUrl(url))}&strategy=${device}&key=${key}&category=performance`);
   return data;
 };

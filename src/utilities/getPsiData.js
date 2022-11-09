@@ -111,7 +111,8 @@ const getSpeedData = async ({
   // urlList.forEach((url) => {
   //   urlReqObj[url] = { lab: reqCountPerUrl, field: 0 };
   // });
-  devices.forEach(async (device) => {
+  devices.forEach(async (device,j) => {
+    await new Promise((r) => setTimeout(r, j*2500));
     stopExecution = false;
 
     setSnackBar((snackBar) => ({...snackBar, open: true, message: `Fetching scores for ${urlList.length} URLs, ${_round} rounds of ${iterationNum} iterations for ${device}`, type: 'info'}))
@@ -193,7 +194,10 @@ const getSpeedData = async ({
 
         // console.log('chunk ================== \n', chunk);
         // Loop trough array to create batch of promises (array)
-        const promises = chunk.map((testUrl) => apiRequest(testUrl, device, apiKey));
+        const promises = chunk.map(async(testUrl, i) => {
+          await new Promise((r) => setTimeout(r, i*500));
+          return  apiRequest(testUrl, device, apiKey)
+         });
 
         // console.log('chunk ', chunk);
 
