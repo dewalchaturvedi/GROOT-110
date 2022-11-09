@@ -90,11 +90,16 @@ const getSpeedData = async ({
   setDesktopMedianScores([]);
   setMobileAverageScores([]);
   setDesktopAverageScores([]);
+  setSuccessCount(0);
+  setErrorCount(0);
+  setProgress(0);
+  setQueueCount(0);
 
   const startDateTime = new Date();
   const startTimeStamp = startDateTime.getTime();
   const _round = Number.parseInt(round, 10);
   const devices = device.split(",");
+  const _MAX_PARALLEL_REQ_COUNT = MAX_PARALLEL_REQ_COUNT/devices.length;
   // Get URL List
   const resultObj = { mobile: {}, desktop: {} };
   const urlList = urlListCSV.split(",");
@@ -119,7 +124,7 @@ const getSpeedData = async ({
 
     let allReqUrls = Array(reqCountPerUrl).fill(urlList).flat();
 
-    const splitChunks = allReqUrls.length / MAX_PARALLEL_REQ_COUNT;
+    const splitChunks = allReqUrls.length / _MAX_PARALLEL_REQ_COUNT;
     console.log(
       `The set of urls has been split up in ${Math.ceil(splitChunks)} chunk/s`
     );
@@ -179,10 +184,13 @@ const getSpeedData = async ({
       retryCount += 1;
       const tempRetryList = [];
       // Break URL list into chunks to prevent API errors
-      const chunks = chunkArray(allReqUrls, MAX_PARALLEL_REQ_COUNT);
+      const chunks = chunkArray(allReqUrls, _MAX_PARALLEL_REQ_COUNT);
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        queriesPerMinuteLimitReached = false;
+        queriesPerDayLimitReached = false;
+
         if (stopExecution) {
           break;
         }
@@ -218,7 +226,7 @@ const getSpeedData = async ({
             const labAudit = res.value?.lighthouseResult?.audits;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
-            if (fieldMetrics &&  _round === 1 && res.value.originLoadingExperience.metrics) {
+            if (fieldMetrics &&  _round === 1) {
               // Extract Field metrics (if there are)
               const fieldFCP =
                 fieldMetrics.FIRST_CONTENTFUL_PAINT_MS?.percentile ?? 'no data';
