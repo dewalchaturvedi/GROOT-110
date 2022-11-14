@@ -203,7 +203,7 @@ const getSpeedData = async ({
         // console.log('chunk ================== \n', chunk);
         // Loop trough array to create batch of promises (array)
         const promises = chunk.map(async(testUrl, i) => {
-          await new Promise((r) => setTimeout(r, i*500));
+          await new Promise((r) => setTimeout(r, i*250));
           return  apiRequest(testUrl, device, apiKey)
          });
 

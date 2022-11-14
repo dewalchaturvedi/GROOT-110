@@ -1,4 +1,4 @@
-export const MAX_PARALLEL_REQ_COUNT = 20;
+export const MAX_PARALLEL_REQ_COUNT = 30;
 
 export const uniquePsiDummyString = 'tempPsiId';
 
