@@ -8,11 +8,21 @@ import PersistentDrawerLeft from '../Drawer';
 import Filter from '../Selector/Filter';
 import ToastMessage from '../ToastMessage';
 import LinearProgressWithLabel from '../LinearProgressWithLabel';
+import CheckboxWithLabel from '../CheckBox';
+import { getUrlListForSelectedEnvs } from '../../utilities/getUrlListForSelectedEnvs';
 
 const textContainerStyle = {
     width: '70%',
     margin: 20
 };
+
+const PERFORMANCE_ENVS = {
+    live: { label: "Live", selected: true, queryString: '' },
+    test: { label: "Test", selected: false, queryString: 'module=test' },
+    dev: { label: "Dev", selected: false, queryString: 'module=dev' },
+    dev2: { label: "Dev 2", selected: false, queryString: 'module=dev2' },
+    dev3: { label: "Dev 3", selected: false, queryString: 'module=dev3' },
+  };
 
 const PerformanceCalculator = props => {
     const [psiConfig, setPsiConfig] = useState({
@@ -21,6 +31,7 @@ const PerformanceCalculator = props => {
         urlListCSV: '',
         apiKey: '',
     });
+    const [performanceEnvs, setPerformanceEnvs] = useState(PERFORMANCE_ENVS)
     const [isShimmer, setShimmer] = useState({ mobile: true, desktop: true })
     const [mobileTestScores, setMobileTestScores] = useState([]);
     const [desktopTestScores, setDesktopTestScores] = useState([]);
@@ -56,7 +67,8 @@ const PerformanceCalculator = props => {
         hideShimmer();
     }, [mobileMedianScores, desktopMedianScores]);
     const triggerBuild = () => {
-        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: psiConfig?.urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount });
+        const urlListCSV = getUrlListForSelectedEnvs(psiConfig?.urlListCSV, performanceEnvs);
+        getSpeedData({ round: psiConfig?.numberOfRounds, urlListCSV: urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount });
         setBuildRunning(true);
     };
 
@@ -69,6 +81,8 @@ const PerformanceCalculator = props => {
             return setShimmer({ ...isShimmer, mobile: !mobileMedianScores.length > 0 })
         }
     }
+
+    const selectedEnvCount = Object.keys(performanceEnvs).filter(env => performanceEnvs[env].selected).length; 
     return (
         <div>
             <Container>
@@ -86,13 +100,33 @@ const PerformanceCalculator = props => {
                     <TextField id="urlListCSV" label="Enter URL" variant="standard" style={textContainerStyle}
                         onChange={handleChange} />
                 </div>
+                <div style={{ margin: "20px", width: "70%" }}>
+                    <div>Select the envs : </div>
+                    <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                        {Object.keys(performanceEnvs).map((env) => {
+                            const envState = performanceEnvs[env];
+                            return (
+                                <CheckboxWithLabel
+                                    checked={envState.selected}
+                                    handleChange={() =>
+                                        setPerformanceEnvs({
+                                        ...performanceEnvs,
+                                        [env]: { ...envState, selected: !envState.selected },
+                                        })
+                                    }
+                                    label={envState.label}
+                                />
+                            );
+                        })}
+                    </div>
+                </div>
                 <div style={{ width: '30%', margin: 20 }}>
                     <Selector handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
                     <Grid container spacing={2}>
                         <Grid item xs={2}>
-                        <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey}  >Build</Button>
+                        <Button variant="contained" onClick={triggerBuild} disabled={!psiConfig.numberOfRounds || !psiConfig.urlListCSV || !psiConfig.apiKey || !selectedEnvCount}  >Build</Button>
                         </Grid>
                         {buildRunning && <>
                             <Grid item xs={3}><p>Total URLs: {totalUrlCount}</p></Grid>
