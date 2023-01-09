@@ -8,7 +8,8 @@ import removeTempPsiIdFromUrl from "./removeTempPsiIdFromUrl";
 import sleep from "./sleep";
 import { addRow } from "./firebaseUtils";
 import { collection, getFirestore } from 'firebase/firestore';
-
+const sampleResponse = require("../constants/sample-response.json");
+const useSampleResponse = false;
 
 // Reduce labDataRes array to calcualte median/average for the same URLs in array
 function reduceResults(calculatorFn, resArray, iterationNum) {
@@ -49,7 +50,13 @@ function reduceResults(calculatorFn, resArray, iterationNum) {
           // scriptParseCompile: calculatorFn(sameUrlRoundChunk.map(({ scriptParseCompile }) => scriptParseCompile)),
           // garbageCollection: calculatorFn(sameUrlRoundChunk.map(({ garbageCollection }) => garbageCollection)),
           pageSize: calculatorFn(sameUrlRoundChunk.map(({ pageSize }) => pageSize)),
+          
+          firstPartyJSTransfer: calculatorFn(sameUrlRoundChunk.map(({ firstPartyJSTransfer }) => firstPartyJSTransfer)),
+          firstPartyJSResource: calculatorFn(sameUrlRoundChunk.map(({ firstPartyJSResource }) => firstPartyJSResource)),
+          thirdPartyJSTransfer: calculatorFn(sameUrlRoundChunk.map(({ thirdPartyJSTransfer }) => thirdPartyJSTransfer)),
+          thirdPartyJSResource: calculatorFn(sameUrlRoundChunk.map(({ thirdPartyJSResource }) => thirdPartyJSResource)),
           date: moment().format("YYYY-MM-DD HH:mm"),
+          benchmarkIndex: calculatorFn(sameUrlRoundChunk.map(({ benchmarkIndex }) => benchmarkIndex)),
         };
         
         // Push to accumulator
@@ -61,6 +68,29 @@ function reduceResults(calculatorFn, resArray, iterationNum) {
     return acc;
   }, []);
   return calculatedMetrices;
+}
+
+function objListFieldSum(objList, field) {
+  // results in Mb
+  return objList.reduce((accum, currentValue) => accum + currentValue[field], 0)/1000;
+}
+
+function getJSDetails(networkRequestsItems) {
+  const jsItemsSuccessful = networkRequestsItems.filter(item => item.statusCode === 200 && item.mimeType.includes('javascript'));
+  const firstPartyJS = jsItemsSuccessful.filter(item => item.url.includes('universal'));
+  const thirdPartyJS = jsItemsSuccessful.filter(item => !item.url.includes('universal'));
+
+  const result = {
+    firstParty: {
+      transferSize: objListFieldSum(firstPartyJS, 'transferSize'),
+      resourceSize: objListFieldSum(firstPartyJS, 'resourceSize'),
+    },
+    thirdParty: {
+      transferSize: objListFieldSum(thirdPartyJS, 'transferSize'),
+      resourceSize: objListFieldSum(thirdPartyJS, 'resourceSize'),
+    }
+  }
+  return result;
 }
 
 const getSpeedData = async ({
@@ -90,10 +120,13 @@ const getSpeedData = async ({
   setDesktopMedianScores([]);
   setMobileAverageScores([]);
   setDesktopAverageScores([]);
-  setSuccessCount(0);
-  setErrorCount(0);
+  setSuccessCount({mobile: 0, desktop: 0});
+  setErrorCount({mobile: 0, desktop: 0});
   setProgress(0);
-  setQueueCount(0);
+  setQueueCount({mobile: 0, desktop: 0});
+
+  // await sleep(60000 * 15);
+  // console.log(' ====== slept for 30 min ======== ');
 
   const startDateTime = new Date();
   const startTimeStamp = startDateTime.getTime();
@@ -166,6 +199,7 @@ const getSpeedData = async ({
     };
 
     while (allReqUrls.length) {
+      // console.log('debug ======= allReqUrls.length', allReqUrls.length)
       if (retryCount !== 0) {
         console.log(`Retrying ${allReqUrls.length} urls`);
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Retrying ${allReqUrls.length} urls`, type: 'info'}))
@@ -188,6 +222,8 @@ const getSpeedData = async ({
       // console.log('chunks ============== \n', chunks);
       // Loop through chunks
       for (let [i, chunk] of chunks.entries()) {
+        // console.log('debug ======= for loop chunk device', device);
+        // console.log('debug ======= re-setting queriesPerDayLimitReached');
         queriesPerMinuteLimitReached = false;
         queriesPerDayLimitReached = false;
 
@@ -204,13 +240,18 @@ const getSpeedData = async ({
         // Loop trough array to create batch of promises (array)
         const promises = chunk.map(async(testUrl, i) => {
           await new Promise((r) => setTimeout(r, i*250));
+          if (useSampleResponse) {
+            return Promise.resolve(sampleResponse);
+          }
           return  apiRequest(testUrl, device, apiKey)
          });
 
         // console.log('chunk ', chunk);
 
         // Send all requests in parallel
+        // console.log(`debug ======= before rawBatchResults ${new Date()} device ${device}`);
         const rawBatchResults = await Promise.allSettled(promises);
+        // console.log(`debug ======= after rawBatchResults ${new Date()} device ${device}`);
 
         // Iterate through API responses
         let chunkSuccessCount = 0;
@@ -219,11 +260,13 @@ const getSpeedData = async ({
           if (res.status === "fulfilled") {
             chunkSuccessCount += 1;
             totalSuccessCount += 1;
+            // console.log(`debug ======= chunkSuccessCount ${ chunkSuccessCount}, device ${device}`);
             console.log("response 0 ", chunk[index], res);
             // Variables to make extractions easier
             const fieldMetrics = res.value?.originLoadingExperience?.metrics;
             const originFallback = res.value?.loadingExperience?.origin_fallback;
             const labAudit = res.value?.lighthouseResult?.audits;
+            const benchmarkIndex = res.value?.lighthouseResult?.environment?.benchmarkIndex;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
             if (fieldMetrics &&  _round === 1) {
@@ -290,6 +333,7 @@ const getSpeedData = async ({
             const pageSize = parseFloat(
               (labAudit["total-byte-weight"].numericValue / 1000000).toFixed(3)
             );
+            const JSDetails = getJSDetails(labAudit["network-requests"].details.items);
             // const mainThread = parseFloat(labAudit['mainthread-work-breakdown'].displayValue.slice(0,-2))
             // const thirdPartySummary = getThirdPartySummary(labAudit);
             // const mainThreadDetails = getMainThreadDetails(labAudit);
@@ -316,6 +360,10 @@ const getSpeedData = async ({
               TBT,
               labMaxFID,
               pageSize,
+              firstPartyJSTransfer: JSDetails.firstParty.transferSize,
+              firstPartyJSResource: JSDetails.firstParty.resourceSize,
+              thirdPartyJSTransfer: JSDetails.thirdParty.transferSize,
+              thirdPartyJSResource: JSDetails.thirdParty.resourceSize,
               // thirdPartySummary,
               // mainThread,
               // scriptEvaluation,
@@ -326,12 +374,16 @@ const getSpeedData = async ({
               // scriptParseCompile,
               // garbageCollection,
               date,
+              device,
+              benchmarkIndex,
             };
             return finalObj;
           } else {
             chunkErrorCount += 1;
+            // console.log(`debug ======= chunkErrorCount ${ chunkErrorCount}, device ${device}`);
             if (res.reason.response?.data.error.message.includes('API key not valid. Please pass a valid API key.') ||
             res.reason.message.includes('API key not valid. Please pass a valid API key.')) {
+              // console.log(`debug ======= invalid api key`);
               setSnackBar((snackBar) => ({...snackBar, open: true, message: `API key not valid. Please pass a valid API key.`, type: 'error'}));
               stopExecution = true;
             } else {
@@ -351,6 +403,7 @@ const getSpeedData = async ({
               ) ||
               res.reason.message.includes("Queries per day")
             ) {
+              // console.log('debug ======= setting queriesPerDayLimitReached');
               queriesPerDayLimitReached = true;
             }
             if (
@@ -365,6 +418,7 @@ const getSpeedData = async ({
               ) ||
               res.reason.message.includes("Queries per minute")
             ) {
+              // console.log(`debug ======= Please wait a while or Queries per minute`);
               queriesPerMinuteLimitReached = true;
             }
 
@@ -397,15 +451,16 @@ const getSpeedData = async ({
           ]);
           // console.log("filter", [...filteredResults]);
         }
+        // console.log(`debug ======= Successfully fetched scores for ${filteredResults.length} ${device} URLs`);
         setSnackBar((snackBar) => ({...snackBar, open: true, message: `Successfully fetched scores for ${filteredResults.length} ${device} URLs`, type: 'success'}))
         // Push spreaded results to labDataRes array
         labDataRes.push(...results);
         // }
 
-        setSuccessCount(prevSuccessCount => prevSuccessCount+chunkSuccessCount);
+        setSuccessCount(prevSuccessCount => ({...prevSuccessCount, [device]:prevSuccessCount[device]+chunkSuccessCount}));
         setProgress(totalSuccessCount*100/totalReqCount);
-        setErrorCount(prevErrorCount => prevErrorCount+chunkErrorCount);
-        setQueueCount(tempRetryList.length);
+        setErrorCount(prevErrorCount => ({...prevErrorCount, [device]:prevErrorCount[device]+chunkErrorCount}));
+        setQueueCount(prevQueueCount => ({...prevQueueCount, [device]:tempRetryList.length}));
 
         if (queriesPerMinuteLimitReached) {
           console.log("That's too much work in a minute, lets take a break.");

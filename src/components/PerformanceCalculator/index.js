@@ -43,9 +43,9 @@ const PerformanceCalculator = props => {
     const [mobileOriginFieldData, setMobileOriginFieldData] = useState([]);
     const [desktopOriginFieldData, setDesktopOriginFieldData] = useState([]);
 
-    const [successCount, setSuccessCount] = useState(0);
-    const [errorCount, setErrorCount] = useState(0);
-    const [queueCount, setQueueCount] = useState(0);
+    const [successCount, setSuccessCount] = useState({mobile: 0, desktop: 0});
+    const [errorCount, setErrorCount] = useState({mobile: 0, desktop: 0});
+    const [queueCount, setQueueCount] = useState({mobile: 0, desktop: 0});
     const [totalUrlCount, setTotalUrlCount] = useState(0);
     const [progress, setProgress] = useState(0);
     
@@ -174,8 +174,8 @@ const PerformanceCalculator = props => {
                         </Grid>
                         {buildRunning && <>
                             <Grid item xs={3}><p>Total URLs: {totalUrlCount}</p></Grid>
-                            <Grid item xs={3}><p>Success: {successCount}</p></Grid>
-                            <Grid item xs={3}><p>Retry Queue Count: {queueCount}</p></Grid>
+                            <Grid item xs={3}><p>Success: {JSON.stringify(successCount)}</p></Grid>
+                            <Grid item xs={3}><p>Retry Queue Count: {JSON.stringify(queueCount)}</p></Grid>
                         </>}
                     </Grid>
                 </div>
