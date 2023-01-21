@@ -14,7 +14,7 @@ const Selector = props => {
                 labelId="demo-simple-select-label"
                 id="demo-simple-select"
                 name='platform'
-                // value={age}
+                value={props?.value || ''}
                 label="Age"
                 onChange={handleChange}
             // onChange={handleChange}

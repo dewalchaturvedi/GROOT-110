@@ -194,7 +194,7 @@ const PerformanceCalculator = props => {
                     </div>
                 </div>
                 <div style={{ width: '30%', margin: 20 }}>
-                    <Selector handleSelectorChange={handleChange} />
+                    <Selector value={psiConfig?.platform} handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
                     <Grid container spacing={2}>
