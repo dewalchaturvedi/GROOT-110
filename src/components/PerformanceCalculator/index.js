@@ -23,6 +23,7 @@ const PERFORMANCE_ENVS = {
     dev2: { label: "Dev 2", selected: false, queryString: 'module=dev2' },
     dev3: { label: "Dev 3", selected: false, queryString: 'module=dev3' },
   };
+const rememberMeKeys = ['apiKey', 'iterationNum', 'numberOfRounds', 'platform', 'urlListCSV'];
 
 const PerformanceCalculator = props => {
     const [psiConfig, setPsiConfig] = useState({
@@ -127,8 +128,12 @@ const PerformanceCalculator = props => {
 
     const handleStoreData = () => {
         if(isRemember) {
-            const obj = JSON.stringify(psiConfig);
-            localStorage.setItem('psiConfig', obj)
+            let obj = {};
+            rememberMeKeys.map((key) => {
+                if(psiConfig[key])
+                obj[key] = psiConfig[key];
+            })
+            localStorage.setItem('psiConfig', JSON.stringify(obj));
         } else {
             localStorage.setItem('psiConfig', '')
         }
@@ -158,7 +163,7 @@ const PerformanceCalculator = props => {
                     <CheckboxWithLabel
                         checked={isRemember}
                         handleChange={() => {setRemember(!isRemember)}}
-                        label="remember me"
+                        label="Remember me"
                     />
                 </div>
                 <div>
