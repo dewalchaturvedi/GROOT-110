@@ -63,7 +63,13 @@ export default function CustomizedTables(props) {
                             <StyledTableCell align="right">Page Size</StyledTableCell>
                             <StyledTableCell align="right">FID</StyledTableCell>
                             <StyledTableCell align="right">Speed Index</StyledTableCell>
+                            <StyledTableCell align="right">First Party JS Transfer</StyledTableCell>
+                            <StyledTableCell align="right">First Party JS Resource</StyledTableCell>
+                            <StyledTableCell align="right">Third Party JS Transfer</StyledTableCell>
+                            <StyledTableCell align="right">Third Party JS Resource</StyledTableCell>
                             <StyledTableCell align="right">TimeStamp</StyledTableCell>
+                            <StyledTableCell align="right">CPU/Memory Power</StyledTableCell>
+                            <StyledTableCell align="right">Device</StyledTableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -71,7 +77,7 @@ export default function CustomizedTables(props) {
                             <StyledTableRow key={row.name}>
                                 <StyledTableCell component="th" scope="row">{row.testUrl || ''}</StyledTableCell>
                                 <StyledTableCell align="right">{row.PerformanceScore}</StyledTableCell>
-                                <StyledTableCell align="right">{row.labCLS || row.fieldCLS}</StyledTableCell>
+                                <StyledTableCell align="right">{row.labCLS || row.fieldCLS || '0'}</StyledTableCell>
                                 <StyledTableCell align="right">{row.TBT}</StyledTableCell>
                                 <StyledTableCell align="right">{row.labLCP || row.fieldLCP}</StyledTableCell>
                                 <StyledTableCell align="right">{row.labFCP || row.fieldFCP}</StyledTableCell>
@@ -80,11 +86,22 @@ export default function CustomizedTables(props) {
                                 <StyledTableCell align="right">{row.pageSize}</StyledTableCell>
                                 <StyledTableCell align="right">{row.labMaxFID || row.fieldFID}</StyledTableCell>
                                 <StyledTableCell align="right">{row.speedIndex}</StyledTableCell>
+                                <StyledTableCell align="right">{row.firstPartyJSTransfer}</StyledTableCell>
+                                <StyledTableCell align="right">{row.firstPartyJSResource}</StyledTableCell>
+                                <StyledTableCell align="right">{row.thirdPartyJSTransfer}</StyledTableCell>
+                                <StyledTableCell align="right">{row.thirdPartyJSResource}</StyledTableCell>
                                 <StyledTableCell align="right">{row.date}</StyledTableCell>
+                                <StyledTableCell align="right">{row.benchmarkIndex}</StyledTableCell>
+                                <StyledTableCell align="right">{row.device}</StyledTableCell>
                             </StyledTableRow>
                         ))}
                         {props.showShimmer && <StyledTableRow>
                             <StyledTableCell component="th" scope="row">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
+                            <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
                             <StyledTableCell align="left">{<Skeleton variant="rectangular" width={60} height={10} />}</StyledTableCell>
