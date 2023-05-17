@@ -265,8 +265,8 @@ const getSpeedData = async ({
             // Variables to make extractions easier
             const fieldMetrics = res.value?.originLoadingExperience?.metrics;
             const originFallback = res.value?.loadingExperience?.origin_fallback;
-            const labAudit = res.value?.lighthouseResult?.audits;
-            const benchmarkIndex = res.value?.lighthouseResult?.environment?.benchmarkIndex;
+            const labAudit = res.value?.data?.audits;
+            const benchmarkIndex = res.value?.data?.environment?.benchmarkIndex;
 
             // If it's the 1st _round of testing & test results have field data (CrUX)
             if (fieldMetrics &&  _round === 1) {
@@ -307,10 +307,10 @@ const getSpeedData = async ({
             }
             // Extract Lab metrics
             const testUrl = removeTempPsiIdFromUrl(
-              res.value.lighthouseResult.finalUrl
+              res.value.data.finalUrl
             );
             const PerformanceScore =
-              res.value.lighthouseResult.categories.performance.score * 100 ||
+              res.value.data.categories.performance.score * 100 ||
               "no data";
             const TTFB = labAudit["server-response-time"].numericValue;
             const TTI =
