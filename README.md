@@ -27,5 +27,5 @@ When click on build, your performance will be fetched
 user can choose dropdown to check scores per iteration or check median scores.
 
 
-Happy Hackings!!!
+Happy Hacking!!!
 
