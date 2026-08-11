@@ -23,6 +23,7 @@ const PERFORMANCE_ENVS = {
     dev2: { label: "Dev 2", selected: false, queryString: 'module=dev2' },
     dev3: { label: "Dev 3", selected: false, queryString: 'module=dev3' },
   };
+const rememberMeKeys = ['apiKey', 'iterationNum', 'numberOfRounds', 'platform', 'urlListCSV'];
 
 const PerformanceCalculator = props => {
     const [psiConfig, setPsiConfig] = useState({
@@ -42,7 +43,7 @@ const PerformanceCalculator = props => {
     const [desktopAverageScores, setDesktopAverageScores] = useState([]);
     const [mobileOriginFieldData, setMobileOriginFieldData] = useState([]);
     const [desktopOriginFieldData, setDesktopOriginFieldData] = useState([]);
-
+    const [isRemember, setRemember] = useState(false);
     const [successCount, setSuccessCount] = useState({mobile: 0, desktop: 0});
     const [errorCount, setErrorCount] = useState({mobile: 0, desktop: 0});
     const [queueCount, setQueueCount] = useState({mobile: 0, desktop: 0});
@@ -88,6 +89,7 @@ const PerformanceCalculator = props => {
         const urlListCSV = getUrlListForSelectedEnvs(psiConfig?.urlListCSV, performanceEnvs);
         getSpeedData({iterationNum: psiConfig?.iterationNum,  round: psiConfig?.numberOfRounds, urlListCSV, device: psiConfig.platform, setMobileTestScores, setDesktopTestScores, setMobileMedianScores, setDesktopMedianScores, setSnackBar, apiKey: psiConfig?.apiKey, setDesktopAverageScores, setMobileAverageScores, setSuccessCount, setErrorCount, setTotalUrlCount, setProgress, setQueueCount,setMobileOriginFieldData, setDesktopOriginFieldData });
         setBuildRunning(true);
+        handleStoreData();
     };
     const transformedFieldOriginMobile = mobileOriginFieldData.length>0? [mobileOriginFieldData[0]]:mobileOriginFieldData;
     const transformedFieldOriginDesktop = desktopOriginFieldData.length>0 ? [desktopOriginFieldData[0]]:desktopOriginFieldData
@@ -120,6 +122,31 @@ const PerformanceCalculator = props => {
         }
     }
 
+    const handleCopyClick = () => {
+        setSnackBar({...snackBar, open: true, message: 'Text copied',  type: "success" })
+    }
+
+    const handleStoreData = () => {
+        if(isRemember) {
+            let obj = {};
+            rememberMeKeys.map((key) => {
+                if(psiConfig[key])
+                obj[key] = psiConfig[key];
+            })
+            localStorage.setItem('psiConfig', JSON.stringify(obj));
+        } else {
+            localStorage.setItem('psiConfig', '')
+        }
+    }
+
+    useEffect(() => {
+        if(localStorage?.getItem('psiConfig')){
+            const psiConfigObj = JSON.parse(localStorage.getItem('psiConfig'));
+            setPsiConfig({ ...psiConfig, ...psiConfigObj})
+            setRemember(true);
+        }
+    }, []);
+
     const selectedEnvCount = Object.keys(performanceEnvs).filter(env => performanceEnvs[env].selected).length; 
     return (
         <div>
@@ -127,21 +154,28 @@ const PerformanceCalculator = props => {
                 <h1>Page Speed Calculator</h1>
                 <p>Please enter the following data to initiate build</p>
                <FormControl fullWidth={true}>
-                <div>
-                    <TextField error={psiConfig?.apiKey ? false : true} autoComplete ={"on"}  helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>} required id="apiKey"
+                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <TextField error={psiConfig?.apiKey ? false : true} autoComplete ={"on"}  helperText={!psiConfig?.apiKey && <span>Create your own <a style={{ textDecoration: "none", color: "cornflowerblue" }} target='_blank' href="https://developers.google.com/speed/docs/insights/v5/get-started">Here</a></span>}
+                        required id="apiKey"
+                        value={psiConfig?.apiKey || ''}
                         label={"Your API Key"}
                         variant="standard" style={textContainerStyle} onChange={handleChange} />
+                    <CheckboxWithLabel
+                        checked={isRemember}
+                        handleChange={() => {setRemember(!isRemember)}}
+                        label="Remember me"
+                    />
                 </div>
                 <div>
-                    <TextField id="numberOfRounds" label="Number of Test Rounds" variant="standard"  defaultValue={psiConfig.numberOfRounds} style={textContainerStyle} onChange={handleChange} />
+                    <TextField id="numberOfRounds" value={psiConfig?.numberOfRounds || ''} label="Number of Test Rounds" variant="standard"  defaultValue={psiConfig.numberOfRounds} style={textContainerStyle} onChange={handleChange} />
                 </div>
 
                 <div>
-                    <TextField id="iterationNum" label="Number of iteration each round" variant="standard" defaultValue={psiConfig.iterationNum} style={textContainerStyle} onChange={handleChange} />
+                    <TextField id="iterationNum" value={psiConfig?.iterationNum || ''} label="Number of iteration each round" variant="standard" defaultValue={psiConfig.iterationNum} style={textContainerStyle} onChange={handleChange} />
                 </div>
 
                 <div>
-                    <TextField id="urlListCSV" label="Enter URL" variant="standard"  style={textContainerStyle}
+                    <TextField id="urlListCSV" value={psiConfig?.urlListCSV || ''} label="Enter URL" variant="standard"  style={textContainerStyle}
                         onChange={handleChange} />
                 </div>
                 <div style={{ margin: "20px", width: "70%" }}>
@@ -165,7 +199,7 @@ const PerformanceCalculator = props => {
                     </div>
                 </div>
                 <div style={{ width: '30%', margin: 20 }}>
-                    <Selector handleSelectorChange={handleChange} />
+                    <Selector value={psiConfig?.platform} handleSelectorChange={handleChange} />
                 </div>
                 <div style={{ margin: 20 }}>
                     <Grid container spacing={2}>
@@ -195,14 +229,14 @@ const PerformanceCalculator = props => {
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginMobile: filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} showShimmer={isShimmer.mobile}  />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginMobile: filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores} showShimmer={isShimmer.mobile} onCopyClick={handleCopyClick} />
                             </div>
                             <div>
                                 <p style={{ marginLeft: '45%' }}>PSI Results : Desktop</p>
                                 <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                     <Filter filter={filter} setFilter={setFilter} />
                                 </div>
-                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginDesktop: filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} showShimmer={isShimmer.desktop}  />
+                                <CustomizedTables testScores={filter==='origin' ? transformedFieldOriginDesktop: filter === 'tests' ? desktopTestScores : filter === 'median' ? desktopMedianScores : desktopAverageScores} showShimmer={isShimmer.desktop}  onCopyClick={handleCopyClick}/>
                             </div>
                         </div>
                         :
@@ -211,7 +245,7 @@ const PerformanceCalculator = props => {
                             <div style={{ marginLeft: '80%', marginTop: -60, marginBottom: 20 }}>
                                 <Filter filter={filter} setFilter={setFilter} />
                             </div>
-                            <CustomizedTables showShimmer={psiConfig.platform === 'mobile' ? isShimmer.mobile : isShimmer.desktop} testScores={psiConfig.platform === 'mobile' ? (filter==='origin' ? transformedFieldOriginMobile:filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores :filter==='origin' ? transformedFieldOriginDesktop: filter === 'median' ? desktopMedianScores : desktopAverageScores)} />
+                            <CustomizedTables showShimmer={psiConfig.platform === 'mobile' ? isShimmer.mobile : isShimmer.desktop} testScores={psiConfig.platform === 'mobile' ? (filter==='origin' ? transformedFieldOriginMobile:filter === 'tests' ? mobileTestScores : filter === 'median' ? mobileMedianScores : mobileAverageScores) : (filter === 'tests' ? desktopTestScores :filter==='origin' ? transformedFieldOriginDesktop: filter === 'median' ? desktopMedianScores : desktopAverageScores)} onCopyClick={handleCopyClick} />
                         </div>
                     }
                 </div> : null}

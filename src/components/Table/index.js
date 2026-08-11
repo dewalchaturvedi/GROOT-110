@@ -8,6 +8,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { Skeleton } from '@mui/material';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -29,13 +30,26 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     },
 }));
 
+function copytable(el) {
+    window.getSelection().removeAllRanges();
+    let range = document.createRange();
+    range.selectNode(document.getElementById(el));
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+}
+
+const generateId = () => {
+    return new Date().getTime() + "table"
+};
 
 export default function CustomizedTables(props) {
-
+    const tableId = React.useMemo(() => generateId(), []);
     return (
         <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+            <div style={{ float: "right" }} onClick={() => { copytable(tableId); props?.onCopyClick?.();}}> <ContentPasteIcon /> </div>  
             <TableContainer sx={{ maxHeight: 440 }}>
-                <Table aria-label="sticky table" stickyHeader={true} >
+                <Table aria-label="sticky table" stickyHeader={true} id={tableId}>
                     <TableHead>
                         <TableRow>
                             <StyledTableCell>URL</StyledTableCell>
